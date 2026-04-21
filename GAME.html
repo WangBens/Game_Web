@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>2D 橫向卷軸：跳躍與無限背景</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222; 
+            margin: 0;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        /* 遊戲舞台 */
+        .stage {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            background-color: black;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+
+        /* 無限移動的地板容器 */
+        .floor-track {
+            position: absolute;
+            top: 0;
+            /* 【修正重點 1】這裡改為 0，讓 JS 完全接管位置，避免偏移兩次 */
+            left: 0; 
+            display: flex;
+            height: 100%;
+            /* 讓容器寬度自動適應圖片 */
+            width: max-content; 
+        }
+
+        .floor-track img {
+            width: 800px;
+            height: 400px;
+            object-fit: cover;
+            /* 關閉平滑化，保留像素感 */
+            image-rendering: pixelated; 
+            /* 【修正重點 2】防止圖片在某些瀏覽器下被擠壓縮小 */
+            flex-shrink: 0; 
+        }
+
+        /* 角色外層包裹器 (負責處理跳躍的 Y 軸) */
+        #playerWrapper {
+            position: absolute;
+            bottom: 45px; 
+            left: 50%;    
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        /* 角色圖片 (負責處理轉向的 X 軸 與 動畫) */
+        #playerImg {
+            width: 150px;
+            image-rendering: pixelated; 
+        }
+
+        /* 控制器 (含按鈕) */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 50px;
+        }
+
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: #444;
+            color: white;
+            border: 2px solid #666;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn:active {
+            background: #666;
+            transform: scale(0.9);
+        }
+
+        .btn.jump-btn {
+            width: 80px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-left: 20px;
+            background: #d84315;
+            border-color: #ff8a65;
+        }
+        .btn.jump-btn:active { background: #bf360c; }
+        
+        .hint { color: #ccc; margin: 0 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="stage">
+        <div class="floor-track" id="floorTrack">
+            </div>
+
+        <div id="playerWrapper">
+            <img id="playerImg" src="yayun_stand.png" alt="角色">
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="btn" id="leftBtn">◀</div>
+        <div class="btn" id="rightBtn">▶</div>
+        <div class="hint">或使用鍵盤 ← → 與 Space</div>
+        <div class="btn jump-btn" id="jumpBtn">JUMP</div>
+    </div>
+
+    <script>
+        const playerWrapper = document.getElementById('playerWrapper');
+        const playerImg = document.getElementById('playerImg');
+        const floorTrack = document.getElementById('floorTrack');
+
+        const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
+        const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png'];
+        const jumpImg = 'run_6.png';
+        const standImg = 'yayun_stand.png';
+
+        let currentFrame = 0;
+        let animTimer = 0;
+        
+        let movingDir = 0; // -1: 左, 1: 右, 0: 停止
+        let floorX = -800; // 地板初始 X 座標 (一開始鏡頭對準中間的第二張圖)
+        const moveSpeed = 6; 
+
+        let isJumping = false;
+        let charY = 0;       
+        let velocityY = 0;   
+        const jumpPower = 18; 
+        const gravity = 1.2;  
+
+        const keys = { left: false, right: false };
+
+        function getRandomFloor() {
+            return floorImages[Math.floor(Math.random() * floorImages.length)];
+        }
+
+        // 一開始先塞入 3 張隨機地板
+        for (let i = 0; i < 3; i++) {
+            let img = document.createElement('img');
+            img.src = getRandomFloor();
+            floorTrack.appendChild(img);
+        }
+
+        // 核心遊戲迴圈
+        setInterval(gameLoop, 20);
+
+        function gameLoop() {
+            updatePhysics();
+            updateFloor();
+            updateAnimation();
+        }
+
+        // 1. 處理地板捲動
+        function updateFloor() {
+            if (movingDir !== 0) {
+                // 角色往右，地板往左
+                floorX -= movingDir * moveSpeed; 
+                playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)';
+            }
+
+            // 無限循環邏輯 (偷天換日)
+            if (floorX <= -1600) {
+                floorX += 800; // 瞬間把地板拉回來
+                floorTrack.removeChild(floorTrack.firstElementChild); // 刪掉最左邊那張
+                let newImg = document.createElement('img');
+                newImg.src = getRandomFloor();
+                floorTrack.appendChild(newImg); // 在最右邊補一張新的
+            }
+            else if (floorX >= 0) {
+                floorX -= 800; // 瞬間把地板推回去
+                floorTrack.removeChild(floorTrack.lastElementChild); // 刪掉最右邊那張
+                let newImg = document.createElement('img');
+                newImg.src = getRandomFloor();
+                floorTrack.insertBefore(newImg, floorTrack.firstElementChild); // 在最左邊補一張新的
+            }
+
+            // 確保地板隨時都在正確的位置上
+            floorTrack.style.transform = `translateX(${floorX}px)`;
+        }
+
+        // 2. 處理跳躍重力
+        function updatePhysics() {
+            if (isJumping) {
+                charY += velocityY; 
+                velocityY -= gravity; 
+
+                if (charY <= 0) {
+                    charY = 0;
+                    isJumping = false;
+                    velocityY = 0;
+                }
+                playerWrapper.style.transform = `translate(-50%, -${charY}px)`;
+            }
+        }
+
+        // 3. 處理圖片動畫切換
+        function updateAnimation() {
+            if (isJumping) {
+                playerImg.src = jumpImg;
+                return;
+            }
+
+            if (movingDir === 0) {
+                playerImg.src = standImg;
+                currentFrame = 0;
+                animTimer = 0;
+                return;
+            }
+
+            animTimer += 20; 
+            if (animTimer >= 100) { 
+                currentFrame = (currentFrame + 1) % walkCycle.length;
+                playerImg.src = walkCycle[currentFrame];
+                animTimer = 0;
+            }
+        }
+
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                velocityY = jumpPower; 
+            }
+        }
+
+        function updateMovingDir() {
+            if (keys.right && !keys.left) movingDir = 1;
+            else if (keys.left && !keys.right) movingDir = -1;
+            else movingDir = 0;
+        }
+
+        // 網頁按鈕事件
+        document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
+        document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
+        document.getElementById('rightBtn').addEventListener('mouseleave', () => { keys.right = false; updateMovingDir(); });
+
+        document.getElementById('leftBtn').addEventListener('mousedown', () => { keys.left = true; updateMovingDir(); });
+        document.getElementById('leftBtn').addEventListener('mouseup', () => { keys.left = false; updateMovingDir(); });
+        document.getElementById('leftBtn').addEventListener('mouseleave', () => { keys.left = false; updateMovingDir(); });
+
+        document.getElementById('jumpBtn').addEventListener('mousedown', jump);
+
+        // 觸控事件
+        document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
+        document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
+        document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
+        document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
+        document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+
+        // 鍵盤事件
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === ' ' || e.key === 'Spacebar') {
+                e.preventDefault(); 
+                jump();
+            }
+            updateMovingDir();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight') keys.right = false;
+            if (e.key === 'ArrowLeft') keys.left = false;
+            updateMovingDir();
+        });
+
+    </script>
+</body>
+</html>
