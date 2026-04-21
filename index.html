@@ -2,54 +2,43 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>2D 橫向卷軸：跳躍與無限背景</title>
+    <title>全螢幕 2D 動作遊戲：戰鬥版 (碰撞優化)</title>
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #222; 
             margin: 0;
+            padding: 0;
+            background-color: #000;
             font-family: sans-serif;
             overflow: hidden;
+            user-select: none; 
+            -webkit-user-select: none;
         }
 
-        /* 遊戲舞台 */
         .stage {
             position: relative;
-            width: 800px;
-            height: 400px;
+            width: 100vw;
+            height: 100vh;
             background-color: black;
             overflow: hidden;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
         }
 
-        /* 無限移動的地板容器 */
         .floor-track {
             position: absolute;
-            top: 0;
-            /* 【修正重點 1】這裡改為 0，讓 JS 完全接管位置，避免偏移兩次 */
-            left: 0; 
+            bottom: 0;
+            left: 0;
             display: flex;
-            height: 100%;
-            /* 讓容器寬度自動適應圖片 */
-            width: max-content; 
+            height: 400px;
+            width: max-content;
         }
 
         .floor-track img {
             width: 800px;
             height: 400px;
             object-fit: cover;
-            /* 關閉平滑化，保留像素感 */
             image-rendering: pixelated; 
-            /* 【修正重點 2】防止圖片在某些瀏覽器下被擠壓縮小 */
             flex-shrink: 0; 
         }
 
-        /* 角色外層包裹器 (負責處理跳躍的 Y 軸) */
         #playerWrapper {
             position: absolute;
             bottom: 45px; 
@@ -58,90 +47,167 @@
             z-index: 10;
         }
 
-        /* 角色圖片 (負責處理轉向的 X 軸 與 動畫) */
         #playerImg {
             width: 150px;
             image-rendering: pixelated; 
+            transition: transform 0.1s; 
         }
 
-        /* 控制器 (含按鈕) */
-        .controls {
-            margin-top: 20px;
+        /* === 怪物與子彈樣式 === */
+        .monster {
+            position: absolute;
+            /* 【修改點 1】這裡的預設寬度改大 */
+            width: 180px; 
+            image-rendering: pixelated; 
+            z-index: 5; 
+        }
+
+        .projectile {
+            position: absolute;
+            font-size: 40px; 
+            font-weight: bold;
+            image-rendering: pixelated; 
+            z-index: 15; 
+            color: #d84315; 
+            text-shadow: 0 0 10px #ff8a65; 
+        }
+
+        /* === 浮動 UI 遊戲控制器 === */
+        .hint { 
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.4); 
+            font-size: 16px;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .controls-left {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
             display: flex;
-            align-items: center;
-            gap: 15px;
-            background: rgba(255,255,255,0.1);
-            padding: 10px 20px;
-            border-radius: 50px;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        .controls-right {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            display: flex;
+            flex-direction: column-reverse; 
+            gap: 20px;
+            z-index: 100;
+            align-items: flex-end; 
+        }
+
+        .controls-top-right {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
         }
 
         .btn {
-            width: 60px;
-            height: 60px;
-            background: #444;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            border: 2px solid #666;
+            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 50%;
-            font-size: 24px;
+            font-size: 28px;
             cursor: pointer;
-            user-select: none;
             display: flex;
             justify-content: center;
             align-items: center;
+            backdrop-filter: blur(5px); 
+            transition: 0.1s;
         }
 
         .btn:active {
-            background: #666;
+            background: rgba(255, 255, 255, 0.5);
             transform: scale(0.9);
         }
 
         .btn.jump-btn {
-            width: 80px;
-            border-radius: 20px;
-            font-size: 18px;
+            width: 90px;
+            height: 90px;
+            font-size: 22px;
             font-weight: bold;
-            margin-left: 20px;
-            background: #d84315;
-            border-color: #ff8a65;
+            background: rgba(216, 67, 21, 0.6);
+            border-color: rgba(255, 138, 101, 0.8);
         }
-        .btn.jump-btn:active { background: #bf360c; }
-        
-        .hint { color: #ccc; margin: 0 10px; }
+        .btn.jump-btn:active { background: rgba(191, 54, 12, 0.8); }
+
+        .btn.attack-btn {
+            width: 80px;
+            height: 80px;
+            font-size: 20px;
+            font-weight: bold;
+            background: rgba(191, 54, 12, 0.6); 
+            border-color: rgba(255, 138, 101, 0.8);
+        }
+        .btn.attack-btn:active { background: rgba(127, 36, 8, 0.8); }
+
+        .btn.sys-btn {
+            width: auto;
+            height: 40px;
+            padding: 0 15px;
+            font-size: 14px;
+            border-radius: 20px;
+        }
+
     </style>
 </head>
 <body>
 
-    <div class="stage">
-        <div class="floor-track" id="floorTrack">
-            </div>
+    <div class="stage" id="gameStage">
+        <div class="floor-track" id="floorTrack"></div>
 
         <div id="playerWrapper">
             <img id="playerImg" src="yayun_stand.png" alt="角色">
         </div>
-    </div>
 
-    <div class="controls">
-        <div class="btn" id="leftBtn">◀</div>
-        <div class="btn" id="rightBtn">▶</div>
-        <div class="hint">或使用鍵盤 ← → 與 Space</div>
-        <div class="btn jump-btn" id="jumpBtn">JUMP</div>
+        <div class="hint">鍵盤 ← →, Space (跳躍), A (攻擊)</div>
+        
+        <div class="controls-left">
+            <div class="btn" id="leftBtn">◀</div>
+            <div class="btn" id="rightBtn">▶</div>
+        </div>
+
+        <div class="controls-right">
+            <div class="btn attack-btn" id="attackBtn">ATK</div>
+            <div class="btn jump-btn" id="jumpBtn">JUMP</div>
+        </div>
+
+        <div class="controls-top-right">
+            <div class="btn sys-btn" id="fullscreenBtn">進入全螢幕</div>
+        </div>
     </div>
 
     <script>
         const playerWrapper = document.getElementById('playerWrapper');
         const playerImg = document.getElementById('playerImg');
         const floorTrack = document.getElementById('floorTrack');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const gameStage = document.getElementById('gameStage');
 
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
         const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png'];
         const jumpImg = 'run_6.png';
         const standImg = 'yayun_stand.png';
+        
+        const monsterImg = 'monster_mouse.png';
+        const attackImg = 'yayun_attack.png';
 
         let currentFrame = 0;
         let animTimer = 0;
         
-        let movingDir = 0; // -1: 左, 1: 右, 0: 停止
-        let floorX = -800; // 地板初始 X 座標 (一開始鏡頭對準中間的第二張圖)
+        let movingDir = 0; 
+        let floorX = -800; 
         const moveSpeed = 6; 
 
         let isJumping = false;
@@ -150,57 +216,63 @@
         const jumpPower = 18; 
         const gravity = 1.2;  
 
+        let facingDir = 1; 
+        let attacking = false;
+        let attackTimer = 0; 
+
+        let monsters = [];
+        let projectiles = [];
+
+        const monsterSpawnChance = 0.05; 
+        const monsterSpeed = 2; 
+        const projectileSpeed = 12; 
+
         const keys = { left: false, right: false };
 
         function getRandomFloor() {
             return floorImages[Math.floor(Math.random() * floorImages.length)];
         }
 
-        // 一開始先塞入 3 張隨機地板
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             let img = document.createElement('img');
             img.src = getRandomFloor();
             floorTrack.appendChild(img);
         }
 
-        // 核心遊戲迴圈
         setInterval(gameLoop, 20);
 
         function gameLoop() {
             updatePhysics();
             updateFloor();
+            updateEntities(); 
             updateAnimation();
         }
 
-        // 1. 處理地板捲動
         function updateFloor() {
             if (movingDir !== 0) {
-                // 角色往右，地板往左
                 floorX -= movingDir * moveSpeed; 
                 playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)';
+                facingDir = movingDir;
             }
 
-            // 無限循環邏輯 (偷天換日)
             if (floorX <= -1600) {
-                floorX += 800; // 瞬間把地板拉回來
-                floorTrack.removeChild(floorTrack.firstElementChild); // 刪掉最左邊那張
+                floorX += 800; 
+                floorTrack.removeChild(floorTrack.firstElementChild); 
                 let newImg = document.createElement('img');
                 newImg.src = getRandomFloor();
-                floorTrack.appendChild(newImg); // 在最右邊補一張新的
+                floorTrack.appendChild(newImg); 
             }
             else if (floorX >= 0) {
-                floorX -= 800; // 瞬間把地板推回去
-                floorTrack.removeChild(floorTrack.lastElementChild); // 刪掉最右邊那張
+                floorX -= 800; 
+                floorTrack.removeChild(floorTrack.lastElementChild); 
                 let newImg = document.createElement('img');
                 newImg.src = getRandomFloor();
-                floorTrack.insertBefore(newImg, floorTrack.firstElementChild); // 在最左邊補一張新的
+                floorTrack.insertBefore(newImg, floorTrack.firstElementChild); 
             }
 
-            // 確保地板隨時都在正確的位置上
             floorTrack.style.transform = `translateX(${floorX}px)`;
         }
 
-        // 2. 處理跳躍重力
         function updatePhysics() {
             if (isJumping) {
                 charY += velocityY; 
@@ -215,8 +287,17 @@
             }
         }
 
-        // 3. 處理圖片動畫切換
         function updateAnimation() {
+            if (attacking) {
+                playerImg.src = attackImg;
+                attackTimer -= 20; 
+                if (attackTimer <= 0) {
+                    attacking = false;
+                    attackTimer = 0;
+                }
+                return; 
+            }
+
             if (isJumping) {
                 playerImg.src = jumpImg;
                 return;
@@ -237,10 +318,116 @@
             }
         }
 
+        function updateEntities() {
+            if (movingDir !== 0 && Math.random() < monsterSpawnChance) {
+                spawnMonster();
+            }
+
+            for (let i = monsters.length - 1; i >= 0; i--) {
+                let monster = monsters[i];
+                monster.x += monsterSpeed * monster.dir;
+                monster.el.style.left = monster.x + 'px';
+
+                // 【修改點 2】配合新寬度 180px，這裡的刪除邊界也調大
+                if (monster.x < -200 || monster.x > gameStage.offsetWidth + 200) {
+                    gameStage.removeChild(monster.el);
+                    monsters.splice(i, 1);
+                }
+            }
+
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let projectile = projectiles[i];
+                projectile.x += projectileSpeed * projectile.dir;
+                projectile.el.style.left = projectile.x + 'px';
+
+                let projectileRect = projectile.el.getBoundingClientRect();
+
+                for (let j = monsters.length - 1; j >= 0; j--) {
+                    let monster = monsters[j];
+                    let monsterRect = monster.el.getBoundingClientRect();
+
+                    if (
+                        projectileRect.x < monsterRect.x + monsterRect.width &&
+                        projectileRect.x + projectileRect.width > monsterRect.x &&
+                        projectileRect.y < monsterRect.y + monsterRect.height &&
+                        projectileRect.y + projectileRect.height > monsterRect.y
+                    ) {
+                        gameStage.removeChild(monster.el);
+                        gameStage.removeChild(projectile.el);
+                        
+                        monsters.splice(j, 1);
+                        projectiles.splice(i, 1);
+                        
+                        break; 
+                    }
+                }
+
+                if (projectiles[i] === projectile) { 
+                    if (projectile.x < -100 || projectile.x > gameStage.offsetWidth + 100) {
+                        if (projectile.el.parentNode) { 
+                            gameStage.removeChild(projectile.el);
+                            projectiles.splice(i, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        function spawnMonster() {
+            let img = document.createElement('img');
+            img.src = monsterImg;
+            img.className = 'monster';
+            
+            // 【修改點 3】放大怪物的寬度
+            img.style.width = '180px'; 
+            
+            let initialX, dir;
+            if (movingDir === 1) { 
+                initialX = gameStage.offsetWidth;
+                dir = -1; 
+            } else if (movingDir === -1) { 
+                // 【修改點 4】因為怪物變寬了，初始左側生成點要退後一點
+                initialX = -180; 
+                dir = 1; 
+            }
+
+            img.style.left = initialX + 'px';
+            // 【修改點 5】把怪物抬高 (從 45px 抬高到 80px)
+            img.style.bottom = '80px'; 
+            
+            gameStage.appendChild(img);
+            monsters.push({ el: img, x: initialX, dir: dir });
+        }
+
+        function spawnProjectile() {
+            let span = document.createElement('span');
+            span.innerHTML = '🔥';
+            span.className = 'projectile';
+            span.style.fontSize = '40px'; 
+            span.style.imageRendering = 'pixelated';
+            
+            let spawnX = gameStage.offsetWidth / 2;
+            let spawnY = 45 + charY + 50; 
+
+            span.style.left = spawnX + 'px';
+            span.style.bottom = spawnY + 'px';
+            gameStage.appendChild(span);
+            projectiles.push({ el: span, x: spawnX, dir: facingDir });
+        }
+
         function jump() {
             if (!isJumping) {
                 isJumping = true;
                 velocityY = jumpPower; 
+            }
+        }
+
+        function attack() {
+            if (!attacking) {
+                attacking = true;
+                attackTimer = 200; 
+                playerImg.src = attackImg; 
+                spawnProjectile();
             }
         }
 
@@ -250,7 +437,6 @@
             else movingDir = 0;
         }
 
-        // 網頁按鈕事件
         document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('mouseleave', () => { keys.right = false; updateMovingDir(); });
@@ -260,21 +446,24 @@
         document.getElementById('leftBtn').addEventListener('mouseleave', () => { keys.left = false; updateMovingDir(); });
 
         document.getElementById('jumpBtn').addEventListener('mousedown', jump);
+        document.getElementById('attackBtn').addEventListener('mousedown', attack);
 
-        // 觸控事件
         document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
         document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+        document.getElementById('attackBtn').addEventListener('touchstart', (e) => { e.preventDefault(); attack(); });
 
-        // 鍵盤事件
         window.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight') keys.right = true;
             if (e.key === 'ArrowLeft') keys.left = true;
             if (e.key === ' ' || e.key === 'Spacebar') {
                 e.preventDefault(); 
                 jump();
+            }
+            if (e.key === 'a' || e.key === 'A') {
+                attack();
             }
             updateMovingDir();
         });
@@ -283,6 +472,18 @@
             if (e.key === 'ArrowRight') keys.right = false;
             if (e.key === 'ArrowLeft') keys.left = false;
             updateMovingDir();
+        });
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                gameStage.requestFullscreen().catch(err => {
+                    alert(`無法進入全螢幕：${err.message}`);
+                });
+                fullscreenBtn.innerText = "退出全螢幕";
+            } else {
+                document.exitFullscreen();
+                fullscreenBtn.innerText = "進入全螢幕";
+            }
         });
 
     </script>
