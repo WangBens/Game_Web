@@ -2,6 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>啟程：大冒險</title>
     <style>
         /* =========================================
@@ -17,6 +18,9 @@
             overflow: hidden; /* 隱藏網頁捲動條 */
             user-select: none; /* 防止玩家不小心反白選取文字 */
             -webkit-user-select: none;
+            /* 針對手機：防止下拉重新整理或奇怪的彈性滾動 */
+            overscroll-behavior: none;
+            touch-action: none; 
         }
 
         .stage {
@@ -54,7 +58,7 @@
         /* === 3. 主角定位與樣式 === */
         #playerWrapper {
             position: absolute;
-            bottom: 80px; /* 決定主角離地板的高度 */
+            bottom: 70px; /* 決定主角離地板的高度 */
             left: 50%; /* 固定在畫面正中間 */
             transform: translateX(-50%);
             z-index: 10;
@@ -85,7 +89,6 @@
             color: #d84315;
             text-shadow: 0 0 10px #ff8a65; /* 火球發光效果 */
             transform-origin: center center;
-            /* 移除這裡預設的錯誤旋轉，改由 JS 動態控制 */
         }
 
         /* === 5. 特效相關的 CSS 關鍵影格 (Keyframes) 動畫 === */
@@ -274,11 +277,12 @@
         .settings-item { display: flex; flex-direction: column; gap: 10px; align-items: center; font-size: 20px; font-weight: bold; }
         input[type=range] { width: 100%; cursor: pointer; }
 
-        /* === 10. 【新增】手機直向螢幕旋轉提示層 === */
+        /* === 10. 手機直向螢幕旋轉提示層 === */
         #orientationOverlay {
             position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
-            z-index: 9999; /* 絕對最上層 */
+            /* 【修正】將 z-index 設到最高，確保在遊戲中暫停時也不會被蓋住 */
+            z-index: 99999; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: white; text-align: center;
             display: none; /* 預設隱藏，由 CSS Media Query 控制 */
@@ -743,7 +747,7 @@
             }
 
             img.style.left = initialX + 'px';
-            img.style.bottom = '110px'; // 配合主角高度微調
+            img.style.bottom = '90px'; // 配合主角高度微調
 
             // 處理鏡像翻轉
             let mirrorValue = (dir === 1) ? -1 : 1;
@@ -779,11 +783,11 @@
             span.style.fontSize = '40px'; 
             span.style.imageRendering = 'pixelated';
             
-            // 【修正點】根據玩家面向決定火球旋轉方向
+            // 根據玩家目前的方向，決定火球的正確旋轉角度
             if (facingDir === 1) {
-                span.style.transform = 'rotate(90deg)'; // 向右打
+                span.style.transform = 'rotate(90deg)';
             } else {
-                span.style.transform = 'rotate(-90deg)'; // 向左打
+                span.style.transform = 'rotate(-90deg)';
             }
             
             // 計算發射起點 (對準主角的手部)
@@ -828,6 +832,7 @@
             mainMenu.style.display = 'none';
             gameStage.style.display = 'block';
             isPaused = false; // 解除凍結開始遊戲迴圈
+            checkOrientation(); // 確保開始遊玩時，如果直向會立刻暫停
         });
 
         // 主畫面 -> 設定畫面
@@ -907,7 +912,25 @@
             togglePause(); 
         });
 
-        // === 8. 事件監聽綁定區 ===
+        // === 8. 螢幕方向偵測機制 (Orientation) ===
+        function checkOrientation() {
+            // 判斷是否為直向螢幕
+            const isPortrait = window.innerHeight > window.innerWidth;
+            
+            // 如果遊戲正在遊玩中 (gameStage 顯示中) 且 螢幕變成直向
+            if (isPortrait && gameStage.style.display === 'block') {
+                // 如果遊戲還沒暫停，就強制暫停
+                if (!isPaused) {
+                    togglePause(); 
+                }
+            }
+        }
+
+        // 監聽螢幕旋轉與視窗大小改變事件
+        window.addEventListener("orientationchange", checkOrientation);
+        window.addEventListener("resize", checkOrientation);
+
+        // === 9. 事件監聽綁定區 ===
 
         // 綁定遊戲內暫停按鈕
         pauseBtn.addEventListener('click', togglePause);
