@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>全螢幕 2D 動作遊戲：戰鬥版 (碰撞優化)</title>
+    <title>2D 動作遊戲：戰鬥與物理特效版 (老鼠動畫優化)</title>
     <style>
         body {
             margin: 0;
@@ -41,8 +41,8 @@
 
         #playerWrapper {
             position: absolute;
-            bottom: 45px; 
-            left: 50%;    
+            bottom: 45px;
+            left: 50%;
             transform: translateX(-50%);
             z-index: 10;
         }
@@ -50,32 +50,147 @@
         #playerImg {
             width: 150px;
             image-rendering: pixelated; 
-            transition: transform 0.1s; 
+            transition: transform 0.1s;
         }
 
         /* === 怪物與子彈樣式 === */
         .monster {
             position: absolute;
-            /* 【修改點 1】這裡的預設寬度改大 */
-            width: 180px; 
+            width: 180px;
             image-rendering: pixelated; 
-            z-index: 5; 
+            z-index: 5;
+            transform-origin: center center;
+            /* 預設載入鏡像變數，沒設定就是 1 (不翻轉) */
+            transform: scaleX(var(--mirror, 1));
+        }
+
+        /* === 特效相關的 CSS 動畫 === */
+        /* 動畫中必須保留 scaleX 變數，避免翻轉狀態在受傷時被重置 */
+        @keyframes monsterShake {
+            0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
+            10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: scaleX(var(--mirror, 1)) translate(-3px, 0px) rotate(1deg); }
+            30% { transform: scaleX(var(--mirror, 1)) translate(3px, 2px) rotate(0deg); }
+            40% { transform: scaleX(var(--mirror, 1)) translate(1px, -1px) rotate(1deg); }
+            50% { transform: scaleX(var(--mirror, 1)) translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: scaleX(var(--mirror, 1)) translate(-3px, 1px) rotate(0deg); }
+            70% { transform: scaleX(var(--mirror, 1)) translate(3px, 1px) rotate(-1deg); }
+            80% { transform: scaleX(var(--mirror, 1)) translate(-1px, -1px) rotate(1deg); }
+            90% { transform: scaleX(var(--mirror, 1)) translate(1px, 2px) rotate(0deg); }
+            100% { transform: scaleX(var(--mirror, 1)) translate(1px, -2px) rotate(-1deg); }
+        }
+
+        @keyframes monsterShrinkVanish {
+            0% { transform: scaleX(var(--mirror, 1)) scale(1); opacity: 1; }
+            100% { transform: scaleX(var(--mirror, 1)) scale(0.1); opacity: 0; }
+        }
+
+        @keyframes whiteLightEffect {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: 0 0 20px 10px #fff; }
+            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; box-shadow: 0 0 80px 40px #fff; }
+        }
+
+        .monster-hit {
+            animation: monsterShake 0.1s infinite;
+        }
+
+        .monster-vanishing {
+            animation: monsterShrinkVanish 0.3s forwards;
+            pointer-events: none;
+        }
+
+        .vfx-light {
+            position: absolute;
+            width: 60px; 
+            height: 60px;
+            background-color: white;
+            border-radius: 50%;
+            z-index: 100;
+            animation: whiteLightEffect 0.3s forwards;
+            pointer-events: none;
+            /* 已將 left: 50% 和 top: 50% 移除以配合動態生成位置 */
         }
 
         .projectile {
             position: absolute;
-            font-size: 40px; 
+            font-size: 40px;
             font-weight: bold;
             image-rendering: pixelated; 
-            z-index: 15; 
-            color: #d84315; 
-            text-shadow: 0 0 10px #ff8a65; 
+            z-index: 15;
+            color: #d84315;
+            text-shadow: 0 0 10px #ff8a65;
+            transform-origin: center center;
+        }
+
+        /* === 抬頭顯示器 (HUD) === */
+        .hud-hp {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+        }
+
+        .hud-exp {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        .stat-box {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: bold;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-label {
+            font-size: 18px;
+            min-width: 45px;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        .bar-bg {
+            width: 200px;
+            height: 18px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s ease-out;
+        }
+
+        .hp-fill {
+            background: linear-gradient(90deg, #d32f2f, #f44336);
+            width: 100%;
+        }
+
+        .exp-fill {
+            background: linear-gradient(90deg, #fbc02d, #ffeb3b);
+            width: 0%;
+        }
+
+        .stat-text {
+            font-size: 14px;
+            min-width: 70px;
+            text-align: center;
         }
 
         /* === 浮動 UI 遊戲控制器 === */
         .hint { 
             position: absolute;
-            top: 20px;
+            top: 80px;
             width: 100%;
             text-align: center;
             color: rgba(255,255,255,0.4); 
@@ -98,10 +213,10 @@
             bottom: 40px;
             right: 40px;
             display: flex;
-            flex-direction: column-reverse; 
+            flex-direction: column-reverse;
             gap: 20px;
             z-index: 100;
-            align-items: flex-end; 
+            align-items: flex-end;
         }
 
         .controls-top-right {
@@ -123,7 +238,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(5px); 
+            backdrop-filter: blur(5px);
             transition: 0.1s;
         }
 
@@ -147,7 +262,7 @@
             height: 80px;
             font-size: 20px;
             font-weight: bold;
-            background: rgba(191, 54, 12, 0.6); 
+            background: rgba(191, 54, 12, 0.6);
             border-color: rgba(255, 138, 101, 0.8);
         }
         .btn.attack-btn:active { background: rgba(127, 36, 8, 0.8); }
@@ -165,6 +280,23 @@
 <body>
 
     <div class="stage" id="gameStage">
+        
+        <div class="hud-hp">
+            <div class="stat-box">
+                <span class="stat-label" style="color: #ff5252;">HP</span>
+                <div class="bar-bg"><div class="bar-fill hp-fill" id="hpBar"></div></div>
+                <span class="stat-text" id="hpText">100 / 100</span>
+            </div>
+        </div>
+
+        <div class="hud-exp">
+            <div class="stat-box">
+                <span class="stat-label" id="lvText" style="color: #ffd54f;">LV 1</span>
+                <div class="bar-bg"><div class="bar-fill exp-fill" id="expBar"></div></div>
+                <span class="stat-text" id="expText">0 / 2</span>
+            </div>
+        </div>
+
         <div class="floor-track" id="floorTrack"></div>
 
         <div id="playerWrapper">
@@ -195,12 +327,20 @@
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const gameStage = document.getElementById('gameStage');
 
+        let playerHP = 100;
+        let playerMaxHP = 100;
+        let playerLV = 1;
+        let playerEXP = 0;
+        let playerMaxEXP = 2; 
+
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
         const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png'];
         const jumpImg = 'run_6.png';
         const standImg = 'yayun_stand.png';
         
-        const monsterImg = 'monster_mouse.png';
+        // 【修改點 1】移除原本的 monster_mouse.png，改用陣列
+        const monsterWalkCycle = ['mouse_run1.png', 'mouse_run2.png', 'mouse_run3.png', 'mouse_run4.png', 'mouse_run5.png', 'mouse_run6.png'];
+        const harmImg = 'harm_mouse.png';
         const attackImg = 'yayun_attack.png';
 
         let currentFrame = 0;
@@ -223,11 +363,34 @@
         let monsters = [];
         let projectiles = [];
 
-        const monsterSpawnChance = 0.05; 
+        let monsterSpawnTimer = 1500; 
         const monsterSpeed = 2; 
         const projectileSpeed = 12; 
+        
+        const HARM_STATE_TIME = 200; 
 
         const keys = { left: false, right: false };
+
+        function updateHUD() {
+            document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
+            document.getElementById('hpBar').style.width = `${(playerHP / playerMaxHP) * 100}%`;
+
+            document.getElementById('lvText').innerText = `LV ${playerLV}`;
+            document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
+            document.getElementById('expBar').style.width = `${(playerEXP / playerMaxEXP) * 100}%`;
+        }
+
+        function gainEXP(amount) {
+            playerEXP += amount;
+            
+            while (playerEXP >= playerMaxEXP) {
+                playerEXP -= playerMaxEXP; 
+                playerLV++;                
+                playerMaxEXP = Math.pow(2, playerLV); 
+            }
+            
+            updateHUD();
+        }
 
         function getRandomFloor() {
             return floorImages[Math.floor(Math.random() * floorImages.length)];
@@ -238,6 +401,8 @@
             img.src = getRandomFloor();
             floorTrack.appendChild(img);
         }
+
+        updateHUD();
 
         setInterval(gameLoop, 20);
 
@@ -319,19 +484,57 @@
         }
 
         function updateEntities() {
-            if (movingDir !== 0 && Math.random() < monsterSpawnChance) {
-                spawnMonster();
+            if (movingDir !== 0) {
+                monsterSpawnTimer -= 20; 
+                if (monsterSpawnTimer <= 0) {
+                    spawnMonster();
+                    monsterSpawnTimer = Math.random() * 1500 + 1500;
+                }
             }
 
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
-                monster.x += monsterSpeed * monster.dir;
-                monster.el.style.left = monster.x + 'px';
+                
+                if (!monster.hit && !monster.done) {
+                    monster.x += monsterSpeed * monster.dir;
+                    monster.el.style.left = monster.x + 'px';
+                    
+                    // 【修改點 2】讓老鼠有跑步動畫
+                    monster.animTimer += 20;
+                    if (monster.animTimer >= 100) {
+                        monster.frame = (monster.frame + 1) % monsterWalkCycle.length;
+                        monster.el.src = monsterWalkCycle[monster.frame];
+                        monster.animTimer = 0;
+                    }
+                    
+                    if (monster.x < -200 || monster.x > gameStage.offsetWidth + 200) {
+                        gameStage.removeChild(monster.el);
+                        monsters.splice(i, 1);
+                        continue; 
+                    }
+                }
 
-                // 【修改點 2】配合新寬度 180px，這裡的刪除邊界也調大
-                if (monster.x < -200 || monster.x > gameStage.offsetWidth + 200) {
-                    gameStage.removeChild(monster.el);
-                    monsters.splice(i, 1);
+                if (monster.hit) {
+                    monster.hitTimer -= 20; 
+                    if (monster.hitTimer <= 0) {
+                        monster.hit = false;
+                        monster.done = true;
+                        monster.doneTimer = 300; 
+                        monster.el.className = 'monster monster-vanishing'; 
+                    }
+                }
+                
+                if (monster.done) {
+                    monster.doneTimer -= 20;
+                    if (monster.doneTimer <= 0) {
+                        spawnTemporaryLightEffect(monster.x + 90, 120); 
+
+                        if (monster.el.parentNode) {
+                            gameStage.removeChild(monster.el);
+                        }
+                        monsters.splice(i, 1);
+                        continue;
+                    }
                 }
             }
 
@@ -344,6 +547,9 @@
 
                 for (let j = monsters.length - 1; j >= 0; j--) {
                     let monster = monsters[j];
+                    
+                    if (monster.hit || monster.done) continue; 
+                    
                     let monsterRect = monster.el.getBoundingClientRect();
 
                     if (
@@ -352,19 +558,23 @@
                         projectileRect.y < monsterRect.y + monsterRect.height &&
                         projectileRect.y + projectileRect.height > monsterRect.y
                     ) {
-                        gameStage.removeChild(monster.el);
                         gameStage.removeChild(projectile.el);
+                        projectiles.splice(i, 1); 
                         
-                        monsters.splice(j, 1);
-                        projectiles.splice(i, 1);
+                        monster.hit = true; 
+                        monster.hitTimer = HARM_STATE_TIME; 
                         
+                        monster.el.src = harmImg; 
+                        monster.el.className = 'monster monster-hit'; 
+                        
+                        gainEXP(1);
                         break; 
                     }
                 }
 
                 if (projectiles[i] === projectile) { 
                     if (projectile.x < -100 || projectile.x > gameStage.offsetWidth + 100) {
-                        if (projectile.el.parentNode) { 
+                        if (projectile.el.parentNode) {
                             gameStage.removeChild(projectile.el);
                             projectiles.splice(i, 1);
                         }
@@ -375,28 +585,56 @@
 
         function spawnMonster() {
             let img = document.createElement('img');
-            img.src = monsterImg;
+            // 【修改點 3】初始載入跑步陣列的第一張圖
+            img.src = monsterWalkCycle[0]; 
             img.className = 'monster';
-            
-            // 【修改點 3】放大怪物的寬度
             img.style.width = '180px'; 
             
             let initialX, dir;
             if (movingDir === 1) { 
                 initialX = gameStage.offsetWidth;
-                dir = -1; 
+                dir = -1; // 怪物向左移動
             } else if (movingDir === -1) { 
-                // 【修改點 4】因為怪物變寬了，初始左側生成點要退後一點
                 initialX = -180; 
-                dir = 1; 
+                dir = 1; // 怪物向右移動
             }
 
             img.style.left = initialX + 'px';
-            // 【修改點 5】把怪物抬高 (從 45px 抬高到 80px)
             img.style.bottom = '80px'; 
-            
+
+            // 控制鏡像，老鼠圖本來朝左，所以向右(1)時翻轉
+            let mirrorValue = (dir === 1) ? -1 : 1;
+            img.style.setProperty('--mirror', mirrorValue);
+
             gameStage.appendChild(img);
-            monsters.push({ el: img, x: initialX, dir: dir });
+            // 【修改點 4】陣列新增 frame 和 animTimer 讓怪物自己紀錄動畫進度
+            monsters.push({ 
+                el: img, 
+                x: initialX, 
+                dir: dir, 
+                hit: false, 
+                hitTimer: 0, 
+                done: false, 
+                doneTimer: 0,
+                frame: 0,
+                animTimer: 0
+            });
+        }
+
+        function spawnTemporaryLightEffect(x, y) {
+            let span = document.createElement('div');
+            span.className = 'vfx-light';
+            
+            span.style.left = `${x}px`;
+            span.style.bottom = `${y}px`;
+            
+            gameStage.appendChild(span);
+            
+            span.addEventListener('animationend', () => {
+                if (span.parentNode) {
+                    gameStage.removeChild(span); 
+                }
+            });
         }
 
         function spawnProjectile() {
@@ -406,8 +644,10 @@
             span.style.fontSize = '40px'; 
             span.style.imageRendering = 'pixelated';
             
+            span.style.transform = 'rotate(-90deg)';
+            
             let spawnX = gameStage.offsetWidth / 2;
-            let spawnY = 45 + charY + 50; 
+            let spawnY = 45 + charY + 80; 
 
             span.style.left = spawnX + 'px';
             span.style.bottom = spawnY + 'px';
