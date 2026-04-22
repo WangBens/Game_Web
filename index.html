@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>2D 動作遊戲：戰鬥與物理特效版 (歷史紀錄版)</title>
+    <title>2D 動作遊戲：戰鬥與物理特效版 (UI 重構版)</title>
     <style>
         body {
             margin: 0;
@@ -22,7 +22,6 @@
             overflow: hidden;
         }
 
-        /* 當遊戲暫停時，強制凍結舞台內所有的 CSS 動畫 */
         .paused-anim * {
             animation-play-state: paused !important;
         }
@@ -58,7 +57,6 @@
             transition: transform 0.1s;
         }
 
-        /* === 怪物與子彈樣式 === */
         .monster {
             position: absolute;
             width: 180px;
@@ -68,7 +66,6 @@
             transform: scaleX(var(--mirror, 1));
         }
 
-        /* === 特效相關的 CSS 動畫 === */
         @keyframes monsterShake {
             0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
             10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
@@ -91,6 +88,12 @@
         @keyframes whiteLightEffect {
             0% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: 0 0 20px 10px #fff; }
             100% { transform: translate(-50%, -50%) scale(4); opacity: 0; box-shadow: 0 0 80px 40px #fff; }
+        }
+
+        @keyframes logoBreathe {
+            0% { transform: scale(0.5); }
+            50% { transform: scale(0.55); } 
+            100% { transform: scale(0.5); }
         }
 
         .monster-hit {
@@ -125,6 +128,8 @@
         }
 
         /* === 抬頭顯示器 (HUD) === */
+        
+        /* HP 顯示在左上角 */
         .hud-hp {
             position: absolute;
             top: 20px;
@@ -132,12 +137,12 @@
             z-index: 100;
         }
 
-        /* 【新增】最高紀錄顯示標籤 */
+        /* 最高紀錄移到左下角，方向鍵上方 */
         .hud-highest-lv {
             position: absolute;
-            top: 70px; /* 放在 HP 條下方 */
+            bottom: 120px; 
             left: 20px;
-            background: rgba(255, 215, 0, 0.15); /* 微透明金黃色背景 */
+            background: rgba(255, 215, 0, 0.15); 
             border: 1px solid rgba(255, 215, 0, 0.4);
             padding: 5px 12px;
             border-radius: 15px;
@@ -149,12 +154,36 @@
             backdrop-filter: blur(5px);
         }
 
+        /* 經驗條移到底部中間 */
         .hud-exp {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        /* 系統按鈕 (暫停/全螢幕) 移到頂部中間 */
+        .controls-top-center {
             position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 100;
+            display: flex;
+            gap: 15px; 
+        }
+
+        /* 遊戲 LOGO 移到右上角 */
+        #gameLogo {
+            position: absolute;
+            top: -20px; /* 因為縮放是0.5，所以位置要微調 */
+            right: -30px;
+            width: 300px; /* 根據原圖比例與縮放調整 */
+            z-index: 90;
+            pointer-events: none; 
+            animation: logoBreathe 2.5s infinite ease-in-out; 
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8)); 
         }
 
         .stat-box {
@@ -206,7 +235,6 @@
             text-align: center;
         }
 
-        /* === 浮動 UI 遊戲控制器 === */
         .hint { 
             position: absolute;
             top: 80px;
@@ -236,15 +264,6 @@
             gap: 20px;
             z-index: 100;
             align-items: flex-end;
-        }
-
-        .controls-top-right {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-            display: flex;
-            gap: 15px; 
         }
 
         .btn {
@@ -301,7 +320,6 @@
             border-color: rgba(255, 235, 59, 0.8);
         }
 
-        /* === 暫停畫面覆蓋層 === */
         .pause-overlay {
             position: absolute;
             top: 0; left: 0;
@@ -365,6 +383,8 @@
 
     <div class="stage" id="gameStage">
         
+        <img id="gameLogo" src="Game_LOGO.png" alt="Game Logo">
+
         <div class="hud-hp">
             <div class="stat-box">
                 <span class="stat-label" style="color: #ff5252;">HP</span>
@@ -403,7 +423,7 @@
             <div class="btn jump-btn" id="jumpBtn">JUMP</div>
         </div>
 
-        <div class="controls-top-right">
+        <div class="controls-top-center">
             <div class="btn sys-btn pause-toggle" id="pauseBtn">暫停</div>
             <div class="btn sys-btn" id="fullscreenBtn">全螢幕</div>
         </div>
@@ -437,7 +457,6 @@
         let playerEXP = 0;
         let playerMaxEXP = 2; 
 
-        // 【新增】從瀏覽器的 localStorage 讀取最高等級紀錄，如果沒有就預設為 1
         let highestLV = localStorage.getItem('rpg_game_highest_lv');
         highestLV = highestLV ? parseInt(highestLV) : 1;
 
@@ -487,7 +506,6 @@
             document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
             document.getElementById('expBar').style.width = `${(playerEXP / playerMaxEXP) * 100}%`;
 
-            // 【新增】更新畫面上的最高紀錄顯示
             document.getElementById('highestLvText').innerText = highestLV;
         }
 
@@ -499,7 +517,6 @@
                 playerLV++;                
                 playerMaxEXP = Math.pow(2, playerLV); 
 
-                // 【新增】如果目前等級超過了歷史最高紀錄，就更新並存檔！
                 if (playerLV > highestLV) {
                     highestLV = playerLV;
                     localStorage.setItem('rpg_game_highest_lv', highestLV);
