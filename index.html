@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>2D 動作遊戲：戰鬥與物理特效版 (老鼠動畫優化)</title>
+    <title>2D 動作遊戲：戰鬥與物理特效版 (歷史紀錄版)</title>
     <style>
         body {
             margin: 0;
@@ -20,6 +20,11 @@
             height: 100vh;
             background-color: black;
             overflow: hidden;
+        }
+
+        /* 當遊戲暫停時，強制凍結舞台內所有的 CSS 動畫 */
+        .paused-anim * {
+            animation-play-state: paused !important;
         }
 
         .floor-track {
@@ -60,12 +65,10 @@
             image-rendering: pixelated; 
             z-index: 5;
             transform-origin: center center;
-            /* 預設載入鏡像變數，沒設定就是 1 (不翻轉) */
             transform: scaleX(var(--mirror, 1));
         }
 
         /* === 特效相關的 CSS 動畫 === */
-        /* 動畫中必須保留 scaleX 變數，避免翻轉狀態在受傷時被重置 */
         @keyframes monsterShake {
             0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
             10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
@@ -108,7 +111,6 @@
             z-index: 100;
             animation: whiteLightEffect 0.3s forwards;
             pointer-events: none;
-            /* 已將 left: 50% 和 top: 50% 移除以配合動態生成位置 */
         }
 
         .projectile {
@@ -128,6 +130,23 @@
             top: 20px;
             left: 20px;
             z-index: 100;
+        }
+
+        /* 【新增】最高紀錄顯示標籤 */
+        .hud-highest-lv {
+            position: absolute;
+            top: 70px; /* 放在 HP 條下方 */
+            left: 20px;
+            background: rgba(255, 215, 0, 0.15); /* 微透明金黃色背景 */
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            padding: 5px 12px;
+            border-radius: 15px;
+            color: #ffd54f;
+            font-weight: bold;
+            font-size: 14px;
+            z-index: 100;
+            text-shadow: 1px 1px 2px black;
+            backdrop-filter: blur(5px);
         }
 
         .hud-exp {
@@ -224,6 +243,8 @@
             top: 20px;
             right: 20px;
             z-index: 100;
+            display: flex;
+            gap: 15px; 
         }
 
         .btn {
@@ -273,7 +294,70 @@
             padding: 0 15px;
             font-size: 14px;
             border-radius: 20px;
+            font-weight: bold;
         }
+        .btn.sys-btn.pause-toggle {
+            background: rgba(255, 193, 7, 0.5);
+            border-color: rgba(255, 235, 59, 0.8);
+        }
+
+        /* === 暫停畫面覆蓋層 === */
+        .pause-overlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px); 
+            z-index: 999; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pause-menu {
+            background: rgba(20, 20, 20, 0.8);
+            padding: 50px 80px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+        }
+
+        .pause-menu h2 {
+            color: white;
+            margin: 0 0 20px 0;
+            font-size: 40px;
+            letter-spacing: 5px;
+            text-shadow: 2px 2px 5px black;
+        }
+
+        .pause-menu-btn {
+            background: rgba(255, 255, 255, 0.8);
+            color: #111;
+            border: none;
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .pause-menu-btn:hover {
+            background: white;
+            transform: scale(1.05);
+        }
+        .pause-menu-btn:active {
+            transform: scale(0.95);
+        }
+        .pause-menu-btn.danger {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+        }
+        .pause-menu-btn.danger:hover { background: rgba(244, 67, 54, 1); }
 
     </style>
 </head>
@@ -287,6 +371,10 @@
                 <div class="bar-bg"><div class="bar-fill hp-fill" id="hpBar"></div></div>
                 <span class="stat-text" id="hpText">100 / 100</span>
             </div>
+        </div>
+
+        <div class="hud-highest-lv">
+            👑 最高紀錄: LV <span id="highestLvText">1</span>
         </div>
 
         <div class="hud-exp">
@@ -316,7 +404,17 @@
         </div>
 
         <div class="controls-top-right">
-            <div class="btn sys-btn" id="fullscreenBtn">進入全螢幕</div>
+            <div class="btn sys-btn pause-toggle" id="pauseBtn">暫停</div>
+            <div class="btn sys-btn" id="fullscreenBtn">全螢幕</div>
+        </div>
+
+        <div id="pauseOverlay" class="pause-overlay" style="display: none;">
+            <div class="pause-menu">
+                <h2>遊戲暫停</h2>
+                <button class="pause-menu-btn" id="resumeBtn">繼續遊玩</button>
+                <button class="pause-menu-btn" id="restartBtn">重新遊玩</button>
+                <button class="pause-menu-btn danger" id="homeBtn">回到主頁</button>
+            </div>
         </div>
     </div>
 
@@ -326,6 +424,12 @@
         const floorTrack = document.getElementById('floorTrack');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const gameStage = document.getElementById('gameStage');
+        
+        const pauseBtn = document.getElementById('pauseBtn');
+        const pauseOverlay = document.getElementById('pauseOverlay');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const homeBtn = document.getElementById('homeBtn');
 
         let playerHP = 100;
         let playerMaxHP = 100;
@@ -333,12 +437,15 @@
         let playerEXP = 0;
         let playerMaxEXP = 2; 
 
+        // 【新增】從瀏覽器的 localStorage 讀取最高等級紀錄，如果沒有就預設為 1
+        let highestLV = localStorage.getItem('rpg_game_highest_lv');
+        highestLV = highestLV ? parseInt(highestLV) : 1;
+
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
         const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png'];
         const jumpImg = 'run_6.png';
         const standImg = 'yayun_stand.png';
         
-        // 【修改點 1】移除原本的 monster_mouse.png，改用陣列
         const monsterWalkCycle = ['mouse_run1.png', 'mouse_run2.png', 'mouse_run3.png', 'mouse_run4.png', 'mouse_run5.png', 'mouse_run6.png'];
         const harmImg = 'harm_mouse.png';
         const attackImg = 'yayun_attack.png';
@@ -370,6 +477,7 @@
         const HARM_STATE_TIME = 200; 
 
         const keys = { left: false, right: false };
+        let isPaused = false;
 
         function updateHUD() {
             document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
@@ -378,6 +486,9 @@
             document.getElementById('lvText').innerText = `LV ${playerLV}`;
             document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
             document.getElementById('expBar').style.width = `${(playerEXP / playerMaxEXP) * 100}%`;
+
+            // 【新增】更新畫面上的最高紀錄顯示
+            document.getElementById('highestLvText').innerText = highestLV;
         }
 
         function gainEXP(amount) {
@@ -387,8 +498,13 @@
                 playerEXP -= playerMaxEXP; 
                 playerLV++;                
                 playerMaxEXP = Math.pow(2, playerLV); 
+
+                // 【新增】如果目前等級超過了歷史最高紀錄，就更新並存檔！
+                if (playerLV > highestLV) {
+                    highestLV = playerLV;
+                    localStorage.setItem('rpg_game_highest_lv', highestLV);
+                }
             }
-            
             updateHUD();
         }
 
@@ -407,6 +523,8 @@
         setInterval(gameLoop, 20);
 
         function gameLoop() {
+            if (isPaused) return;
+
             updatePhysics();
             updateFloor();
             updateEntities(); 
@@ -496,10 +614,9 @@
                 let monster = monsters[i];
                 
                 if (!monster.hit && !monster.done) {
-                    monster.x += monsterSpeed * monster.dir;
+                    monster.x += (monsterSpeed * monster.dir) - (movingDir * moveSpeed);
                     monster.el.style.left = monster.x + 'px';
                     
-                    // 【修改點 2】讓老鼠有跑步動畫
                     monster.animTimer += 20;
                     if (monster.animTimer >= 100) {
                         monster.frame = (monster.frame + 1) % monsterWalkCycle.length;
@@ -521,14 +638,14 @@
                         monster.done = true;
                         monster.doneTimer = 300; 
                         monster.el.className = 'monster monster-vanishing'; 
+                        
+                        spawnTemporaryLightEffect(monster.x + 90, 120); 
                     }
                 }
                 
                 if (monster.done) {
                     monster.doneTimer -= 20;
                     if (monster.doneTimer <= 0) {
-                        spawnTemporaryLightEffect(monster.x + 90, 120); 
-
                         if (monster.el.parentNode) {
                             gameStage.removeChild(monster.el);
                         }
@@ -585,7 +702,6 @@
 
         function spawnMonster() {
             let img = document.createElement('img');
-            // 【修改點 3】初始載入跑步陣列的第一張圖
             img.src = monsterWalkCycle[0]; 
             img.className = 'monster';
             img.style.width = '180px'; 
@@ -593,21 +709,19 @@
             let initialX, dir;
             if (movingDir === 1) { 
                 initialX = gameStage.offsetWidth;
-                dir = -1; // 怪物向左移動
+                dir = -1; 
             } else if (movingDir === -1) { 
                 initialX = -180; 
-                dir = 1; // 怪物向右移動
+                dir = 1; 
             }
 
             img.style.left = initialX + 'px';
             img.style.bottom = '80px'; 
 
-            // 控制鏡像，老鼠圖本來朝左，所以向右(1)時翻轉
             let mirrorValue = (dir === 1) ? -1 : 1;
             img.style.setProperty('--mirror', mirrorValue);
 
             gameStage.appendChild(img);
-            // 【修改點 4】陣列新增 frame 和 animTimer 讓怪物自己紀錄動畫進度
             monsters.push({ 
                 el: img, 
                 x: initialX, 
@@ -656,14 +770,14 @@
         }
 
         function jump() {
-            if (!isJumping) {
+            if (!isJumping && !isPaused) {
                 isJumping = true;
                 velocityY = jumpPower; 
             }
         }
 
         function attack() {
-            if (!attacking) {
+            if (!attacking && !isPaused) {
                 attacking = true;
                 attackTimer = 200; 
                 playerImg.src = attackImg; 
@@ -676,6 +790,62 @@
             else if (keys.left && !keys.right) movingDir = -1;
             else movingDir = 0;
         }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseOverlay.style.display = 'flex';
+                gameStage.classList.add('paused-anim');
+            } else {
+                pauseOverlay.style.display = 'none';
+                gameStage.classList.remove('paused-anim');
+                keys.left = false;
+                keys.right = false;
+                updateMovingDir();
+            }
+        }
+
+        function restartGame() {
+            playerLV = 1;
+            playerEXP = 0;
+            playerMaxEXP = 2; 
+            updateHUD();
+
+            monsters.forEach(m => {
+                if (m.el.parentNode) gameStage.removeChild(m.el);
+            });
+            monsters = [];
+
+            projectiles.forEach(p => {
+                if (p.el.parentNode) gameStage.removeChild(p.el);
+            });
+            projectiles = [];
+            
+            const vfxLights = document.querySelectorAll('.vfx-light');
+            vfxLights.forEach(light => {
+                if (light.parentNode) gameStage.removeChild(light);
+            });
+
+            charY = 0;
+            velocityY = 0;
+            isJumping = false;
+            attacking = false;
+            movingDir = 0;
+            keys.left = false;
+            keys.right = false;
+            playerImg.src = standImg;
+            playerWrapper.style.transform = `translate(-50%, -0px)`;
+            
+            togglePause();
+        }
+
+        pauseBtn.addEventListener('click', togglePause);
+        resumeBtn.addEventListener('click', togglePause);
+        restartBtn.addEventListener('click', restartGame);
+        
+        homeBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
 
         document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
@@ -696,6 +866,10 @@
         document.getElementById('attackBtn').addEventListener('touchstart', (e) => { e.preventDefault(); attack(); });
 
         window.addEventListener('keydown', (e) => {
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                togglePause();
+            }
+            if (isPaused) return; 
             if (e.key === 'ArrowRight') keys.right = true;
             if (e.key === 'ArrowLeft') keys.left = true;
             if (e.key === ' ' || e.key === 'Spacebar') {
