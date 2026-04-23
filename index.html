@@ -10,26 +10,34 @@
            ========================================= */
         
         /* === 1. 網頁基礎與遊戲舞台 === */
-        body {
+        html, body {
             margin: 0;
             padding: 0;
             background-color: #000;
             font-family: sans-serif;
-            overflow: hidden; /* 隱藏網頁捲動條 */
-            user-select: none; /* 防止玩家不小心反白選取文字 */
+            /* 鎖定螢幕，解決手機網址列造成的畫面擠壓與裁切 */
+            position: fixed; 
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100vh; /* Fallback */
+            height: calc(var(--vh, 1vh) * 100); /* 接收 JS 傳來的真實可視高度 */
+            overflow: hidden; 
+            user-select: none; 
             -webkit-user-select: none;
-            /* 針對手機：防止下拉重新整理或奇怪的彈性滾動 */
             overscroll-behavior: none;
             touch-action: none; 
         }
 
         .stage {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
+            position: absolute; 
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-color: black;
             overflow: hidden;
-            display: none; /* 一開始先隱藏遊戲舞台，顯示主畫面 */
+            display: none; 
         }
 
         /* 當遊戲暫停時，強制凍結舞台內所有的 CSS 動畫 */
@@ -51,15 +59,15 @@
             width: 800px;
             height: 400px;
             object-fit: cover;
-            image-rendering: pixelated; /* 保持像素風格，不模糊 */
+            image-rendering: pixelated; 
             flex-shrink: 0; 
         }
 
         /* === 3. 主角定位與樣式 === */
         #playerWrapper {
             position: absolute;
-            bottom: 70px; /* 決定主角離地板的高度 */
-            left: 50%; /* 固定在畫面正中間 */
+            bottom: 80px; 
+            left: 50%; 
             transform: translateX(-50%);
             z-index: 10;
         }
@@ -67,7 +75,7 @@
         #playerImg {
             width: 150px;
             image-rendering: pixelated; 
-            transition: transform 0.1s; /* 轉身時的極短過渡動畫 */
+            transition: transform 0.1s; 
         }
 
         /* === 4. 怪物與子彈樣式 === */
@@ -76,8 +84,8 @@
             width: 180px;
             image-rendering: pixelated; 
             z-index: 5;
-            transform-origin: center center; /* 以中心點為旋轉與縮放基準 */
-            transform: scaleX(var(--mirror, 1)); /* 透過 CSS 變數控制左右翻轉 */
+            transform-origin: center center; 
+            transform: scaleX(var(--mirror, 1)); 
         }
 
         .projectile {
@@ -87,13 +95,12 @@
             image-rendering: pixelated; 
             z-index: 15;
             color: #d84315;
-            text-shadow: 0 0 10px #ff8a65; /* 火球發光效果 */
+            text-shadow: 0 0 10px #ff8a65; 
             transform-origin: center center;
         }
 
         /* === 5. 特效相關的 CSS 關鍵影格 (Keyframes) 動畫 === */
         
-        /* 怪物受傷顫抖 */
         @keyframes monsterShake {
             0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
             10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
@@ -108,36 +115,31 @@
             100% { transform: scaleX(var(--mirror, 1)) translate(1px, -2px) rotate(-1deg); }
         }
 
-        /* 怪物死亡縮小消失 */
         @keyframes monsterShrinkVanish {
             0% { transform: scaleX(var(--mirror, 1)) scale(1); opacity: 1; }
             100% { transform: scaleX(var(--mirror, 1)) scale(0.1); opacity: 0; }
         }
 
-        /* 死亡爆開的白光特效 */
         @keyframes whiteLightEffect {
             0% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: 0 0 10px 5px #fff; }
             100% { transform: translate(-50%, -50%) scale(4); opacity: 0; box-shadow: 0 0 40px 20px #fff; }
         }
 
-        /* 遊戲 LOGO 呼吸縮放動畫 */
         @keyframes logoBreathe {
             0% { transform: scale(0.5); }
             50% { transform: scale(0.55); } 
             100% { transform: scale(0.5); }
         }
-        /* 主選單專用的大 LOGO 呼吸動畫 */
+
         @keyframes mainLogoBreathe {
             0% { transform: scale(1); }
             50% { transform: scale(1.05); } 
             100% { transform: scale(1); }
         }
 
-        /* CSS 狀態類別 (由 JS 動態加入或移除) */
         .monster-hit { animation: monsterShake 0.1s infinite; }
         .monster-vanishing { animation: monsterShrinkVanish 0.3s forwards; pointer-events: none; }
         
-        /* 老鼠消失的白光特效變成 15px * 15px */
         .vfx-light {
             position: absolute;
             width: 15px; height: 15px;
@@ -166,7 +168,6 @@
             transform: translateX(-50%); z-index: 100;
         }
 
-        /* 進度條共用樣式 */
         .stat-box {
             display: flex; align-items: center; gap: 10px;
             background: rgba(0, 0, 0, 0.6); padding: 8px 15px;
@@ -184,7 +185,6 @@
         .exp-fill { background: linear-gradient(90deg, #fbc02d, #ffeb3b); width: 0%; }
         .stat-text { font-size: 14px; min-width: 70px; text-align: center; }
 
-        /* 遊戲內的 LOGO 圖片定位 */
         #gameLogo {
             position: absolute; top: -20px; right: -30px; width: 300px; 
             z-index: 90; pointer-events: none; 
@@ -192,7 +192,6 @@
             filter: drop-shadow(0 0 10px rgba(0,0,0,0.8)); 
         }
 
-        /* 操作提示文字 */
         .hint { 
             position: absolute; top: 80px; width: 100%;
             text-align: center; color: rgba(255,255,255,0.4); 
@@ -200,11 +199,10 @@
         }
 
         /* === 7. 操作按鈕 (左/右/跳躍/攻擊/系統) === */
-        .controls-left { position: absolute; bottom: 40px; left: 40px; display: flex; gap: 20px; z-index: 100; }
-        .controls-right { position: absolute; bottom: 40px; right: 40px; display: flex; flex-direction: column-reverse; gap: 20px; z-index: 100; align-items: flex-end; }
+        .controls-left { position: absolute; bottom: max(40px, env(safe-area-inset-bottom)); left: 40px; display: flex; gap: 20px; z-index: 100; }
+        .controls-right { position: absolute; bottom: max(40px, env(safe-area-inset-bottom)); right: 40px; display: flex; flex-direction: column-reverse; gap: 20px; z-index: 100; align-items: flex-end; }
         .controls-top-center { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 100; }
 
-        /* 圓形虛擬搖桿按鈕 */
         .btn {
             width: 70px; height: 70px;
             background: rgba(255, 255, 255, 0.2); color: white;
@@ -222,7 +220,7 @@
         .btn.sys-btn { width: auto; height: 40px; padding: 0 15px; font-size: 14px; border-radius: 20px; font-weight: bold; }
         .btn.sys-btn.pause-toggle { background: rgba(255, 193, 7, 0.5); border-color: rgba(255, 235, 59, 0.8); }
 
-        /* === 8. 遊戲暫停選單 (毛玻璃覆蓋層) === */
+        /* === 8. 遊戲暫停選單 === */
         .pause-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); 
@@ -236,7 +234,6 @@
         }
         .pause-menu h2 { color: white; margin: 0 0 20px 0; font-size: 40px; letter-spacing: 5px; text-shadow: 2px 2px 5px black; }
 
-        /* 主畫面與選單共用按鈕樣式 */
         .menu-btn {
             background: rgba(255, 255, 255, 0.8); color: #111; border: none;
             padding: 15px 40px; font-size: 22px; font-weight: bold;
@@ -249,9 +246,9 @@
 
         /* === 9. 主畫面與設定畫面樣式 === */
         .screen {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 2000; /* 層級最高，覆蓋在遊戲舞台上方 */
+            z-index: 2000; 
             background-image: url('game_start_background.png');
             background-size: cover; background-position: center;
         }
@@ -262,7 +259,6 @@
         }
         .main-btn-group { display: flex; flex-direction: column; gap: 20px; width: 250px; }
         
-        /* 設定畫面專屬：背景模糊覆蓋層 */
         .blur-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); z-index: -1;
@@ -279,19 +275,17 @@
 
         /* === 10. 手機直向螢幕旋轉提示層 === */
         #orientationOverlay {
-            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
-            /* 【修正】將 z-index 設到最高，確保在遊戲中暫停時也不會被蓋住 */
-            z-index: 99999; 
+            z-index: 99999; /* 絕對最上層 */
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: white; text-align: center;
-            display: none; /* 預設隱藏，由 CSS Media Query 控制 */
+            display: none; 
         }
 
         #orientationOverlay h1 { font-size: 32px; margin-bottom: 20px; color: #ffeb3b;}
         #orientationOverlay p { font-size: 18px; line-height: 1.5; padding: 0 20px; }
         
-        /* 旋轉手機的圖示動畫 */
         .rotate-phone-icon {
             width: 80px; height: 120px;
             border: 4px solid white; border-radius: 10px;
@@ -311,7 +305,7 @@
             100% { transform: rotate(90deg); }
         }
 
-        /* 核心：當螢幕為直向 (高度大於寬度) 時，強制顯示旋轉提示 */
+        /* 核心：當螢幕為直向時，強制顯示旋轉提示 */
         @media screen and (orientation: portrait) {
             #orientationOverlay {
                 display: flex !important;
@@ -406,6 +400,15 @@
     </div>
 
     <script>
+        // === 動態調整可視高度 (解決手機 100vh 跑版問題) ===
+        function fixViewportHeight() {
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        }
+        window.addEventListener('resize', fixViewportHeight);
+        window.addEventListener('orientationchange', fixViewportHeight);
+        fixViewportHeight();
+
         // === 1. 取得 HTML DOM 元素 ===
         const playerWrapper = document.getElementById('playerWrapper'); // 控制跳躍高度
         const playerImg = document.getElementById('playerImg');         // 控制轉向與動畫圖
@@ -831,6 +834,7 @@
         startBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
             gameStage.style.display = 'block';
+            pauseOverlay.style.display = 'none'; // 【修正】確保開始遊戲時暫停選單絕對是關閉的
             isPaused = false; // 解除凍結開始遊戲迴圈
             checkOrientation(); // 確保開始遊玩時，如果直向會立刻暫停
         });
@@ -901,15 +905,16 @@
 
         // 暫停選單 -> 回到主畫面
         homeBtn.addEventListener('click', () => {
-            pauseOverlay.style.display = 'none';
             gameStage.style.display = 'none';
-            gameStage.classList.remove('paused-anim');
             mainMenu.style.display = 'flex';
-            isPaused = true;
-            // 順便重置遊戲內容以備下次遊玩
+            
+            // 順便重置遊戲內容以備下次遊玩 (這內部會觸發一次 togglePause 把選單隱藏、isPaused=false)
             restartGame(); 
-            // 因為 restartGame 會把 isPaused 設為 false，這裡強制再改回 true 讓主畫面凍結
-            togglePause(); 
+            
+            // 【修正】因為 restartGame() 會把 isPaused 變成 false，導致背景偷跑
+            // 我們手動把它改回 true 來凍結主畫面，且「不呼叫 togglePause()」避免重新打開選單！
+            isPaused = true;
+            pauseOverlay.style.display = 'none'; 
         });
 
         // === 8. 螢幕方向偵測機制 (Orientation) ===
