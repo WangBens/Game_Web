@@ -290,8 +290,13 @@
 
         /* === 9. 主畫面與設定畫面樣式 === */
         #menuBgVideo {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            object-fit: cover; z-index: 1500; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            z-index: 1500; 
         }
 
         .screen {
@@ -585,7 +590,7 @@
         let isPaused = true; 
 
         // =========================================
-        // 【重點修正】強制喚醒 Web Audio API
+        // 【更新】強制喚醒 Web Audio API 大法
         // =========================================
         let audioCtx = null;
         let masterGain = null;
@@ -593,6 +598,7 @@
         let nextNoteTime = 0;
         let currentNote = 0;
         let timerID;
+        let isAudioUnlocked = false;
 
         const bpm = 150;
         const noteLength = (60 / bpm) / 2; 
@@ -611,20 +617,56 @@
             43, 43, 55, 43, 43, 43, 55, 43  
         ];
 
-        function initAudio() {
-            if (audioCtx) return; 
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // 破解手機防護機制的解鎖函數
+        const unlockAudio = () => {
+            if (isAudioUnlocked) return;
             
-            // 強制喚醒被瀏覽器暫停的 AudioContext
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
 
-            masterGain = audioCtx.createGain();
+            // 【大絕招】偷偷播一段無聲的短音頻，騙過 iOS 和 Android 系統
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            gainNode.gain.value = 0; // 完全靜音
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start(0);
+            oscillator.stop(audioCtx.currentTime + 0.01);
+
+            isAudioUnlocked = true;
             
-            let currentVol = parseInt(volumeSlider.value) / 100;
-            masterGain.gain.value = currentVol * 0.3; 
-            masterGain.connect(audioCtx.destination);
+            // 解鎖成功後，移除監聽器，避免浪費效能
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchend', unlockAudio);
+            
+            initAudio();
+        };
+
+        // 綁定兩種觸控事件，確保一定會命中
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchend', unlockAudio);
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            if (isBgmPlaying) return; 
+
+            if (!masterGain) {
+                masterGain = audioCtx.createGain();
+                let currentVol = parseInt(volumeSlider.value) / 100;
+                masterGain.gain.value = currentVol * 0.3; 
+                masterGain.connect(audioCtx.destination);
+            }
             
             isBgmPlaying = true;
             bgmHint.style.display = 'none'; 
@@ -670,20 +712,6 @@
             
             timerID = requestAnimationFrame(scheduleAudio);
         }
-
-        // 【修改點】改為同時監聽 click 與 touchstart，確保在所有手機瀏覽器都能解鎖音樂！
-        const unlockAudio = () => {
-            if (!audioCtx) {
-                initAudio();
-            } else if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            document.removeEventListener('click', unlockAudio);
-            document.removeEventListener('touchstart', unlockAudio);
-        };
-        
-        document.addEventListener('click', unlockAudio);
-        document.addEventListener('touchstart', unlockAudio);
 
         // === 5. 遊戲核心函數 ===
 
