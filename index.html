@@ -156,9 +156,23 @@
             pointer-events: none;
         }
 
+        /* === 【新增】升級彩帶特效的 CSS === */
+        .confetti {
+            position: absolute;
+            z-index: 120;
+            pointer-events: none;
+            /* 讓彩帶有一個往上拋然後掉下來的完美拋物線 */
+            animation: confettiFall 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes confettiFall {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            50% { transform: translate(calc(var(--tx) * 0.8), var(--ty)) rotate(calc(var(--rot) / 2)); opacity: 1; }
+            100% { transform: translate(var(--tx), calc(var(--ty) + 120px)) rotate(var(--rot)); opacity: 0; }
+        }
+
         /* === 6. UI 介面 (抬頭顯示器 HUD) === */
         
-        /* 套用 UI 縮放變數與縮放原點，確保放大不會跑版 */
         .hud-hp { 
             position: absolute; top: calc(20px * var(--scale)); left: calc(20px * var(--scale)); z-index: 100; 
             transform: scale(var(--user-ui-scale)); transform-origin: top left;
@@ -218,7 +232,6 @@
         }
 
         /* === 7. 操作按鈕 === */
-        /* 套用 UI 縮放變數與縮放原點 */
         .controls-left { 
             position: absolute; bottom: calc(40px * var(--scale)); left: calc(40px * var(--scale)); 
             display: flex; gap: calc(20px * var(--scale)); z-index: 100; 
@@ -280,8 +293,6 @@
         .menu-btn.danger:hover { background: rgba(244, 67, 54, 1); }
 
         /* === 9. 主畫面與設定畫面樣式 === */
-        
-        /* 【新增】全域背景動畫樣式 */
         #menuBgVideo {
             position: absolute; 
             top: 0; 
@@ -289,14 +300,13 @@
             width: 100%; 
             height: 100%; 
             object-fit: cover; 
-            z-index: 1500; /* 放於畫面底層，但高於遊戲層 */
+            z-index: 1500; 
         }
 
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 2000; 
-            /* 移除舊版圖片背景，改由底下的 video 提供動態背景 */
         }
 
         #mainMenuLogo {
@@ -391,8 +401,8 @@
             </div>
 
             <div class="settings-item">
-                <label for="uiScaleSlider">UI 大小: <span id="uiScaleText">100</span>%</label>
-                <input type="range" id="uiScaleSlider" min="50" max="150" value="100">
+                <label for="uiScaleSlider">按鈕大小: <span id="uiScaleText">100</span>%</label>
+                <input type="range" id="uiScaleSlider" min="50" max="250" value="100">
             </div>
 
             <button class="menu-btn" id="closeSettingsBtn" style="margin-top: 20px;">返回</button>
@@ -458,7 +468,6 @@
     </div>
 
     <script>
-        // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let gameScale = 1;
 
@@ -491,7 +500,6 @@
             }
         }
 
-        // === 1. 取得 HTML DOM 元素 ===
         const playerWrapper = document.getElementById('playerWrapper'); 
         const playerImg = document.getElementById('playerImg');         
         const floorTrack = document.getElementById('floorTrack');       
@@ -517,13 +525,10 @@
         const uiScaleSlider = document.getElementById('uiScaleSlider');
         const uiScaleText = document.getElementById('uiScaleText');
 
-        // 取得背景影片 DOM
         const menuBgVideo = document.getElementById('menuBgVideo');
 
-        // 紀錄是從主頁還是從遊戲內打開設定
         let settingsSource = 'main';
 
-        // === 2. 玩家狀態與數值設定 ===
         let playerHP = 100;
         let playerMaxHP = 100;
         let playerLV = 1;
@@ -539,7 +544,6 @@
         uiScaleText.innerText = savedUiScale;
         document.documentElement.style.setProperty('--user-ui-scale', savedUiScale / 100);
 
-        // === 3. 圖片資源與動畫陣列 ===
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
         const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png']; 
         const jumpImg = 'run_6.png'; 
@@ -549,7 +553,6 @@
         const harmImg = 'harm_mouse.png'; 
         const attackImg = 'yayun_attack.png'; 
 
-        // === 4. 邏輯常數與變數 ===
         const BASE_MOVE_SPEED = 6;
         const BASE_FLOOR_WIDTH = 800;
         const BASE_JUMP_POWER = 18;
@@ -579,7 +582,45 @@
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
-        // === 5. 遊戲核心函數 ===
+        // === 【新增】彩帶噴發特效函數 ===
+        function fireConfetti(amount) {
+            const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
+            const shapes = ['50%', '0%']; // 50%為圓形，0%為方形
+
+            for (let i = 0; i < amount; i++) {
+                let conf = document.createElement('div');
+                conf.className = 'confetti';
+                
+                // 隨機大小
+                let size = Math.random() * 6 + 6; 
+                conf.style.width = `${size}px`;
+                conf.style.height = `${size * (Math.random() > 0.5 ? 1 : 1.5)}px`; 
+                conf.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)];
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // 起始位置在主角身上中心點附近隨機散佈
+                conf.style.left = `calc(50% + ${Math.random() * 20 - 10}px)`;
+                conf.style.bottom = `80px`; 
+
+                // 物理計算：決定噴發的拋物線落點
+                let angle = (Math.random() * 140 + 200) * Math.PI / 180; // 向上噴發的角度
+                let dist = Math.random() * 120 + 80; // 噴發距離
+                let tx = Math.cos(angle) * dist;
+                let ty = Math.sin(angle) * dist; // ty 是負值(往上)
+
+                conf.style.setProperty('--tx', `${tx}px`);
+                conf.style.setProperty('--ty', `${ty}px`);
+                let rot = Math.random() * 720 - 360; // 隨機旋轉
+                conf.style.setProperty('--rot', `${rot}deg`);
+
+                playerWrapper.appendChild(conf);
+
+                // 動畫結束後自動清理 (對應 css 動畫 1 秒)
+                setTimeout(() => {
+                    if (conf.parentNode) conf.parentNode.removeChild(conf);
+                }, 1000);
+            }
+        }
 
         function updateHUD() {
             document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
@@ -594,17 +635,32 @@
 
         function gainEXP(amount) {
             playerEXP += amount;
+            let leveledUp = false;
             
             while (playerEXP >= playerMaxEXP) {
                 playerEXP -= playerMaxEXP; 
                 playerLV++;                
                 playerMaxEXP = Math.pow(2, playerLV); 
+                leveledUp = true;
 
                 if (playerLV > highestLV) {
                     highestLV = playerLV;
                     localStorage.setItem('rpg_game_highest_lv', highestLV);
                 }
             }
+
+            // 【新增】如果升級，觸發特效與震動
+            if (leveledUp) {
+                // 判斷是否為 5 的倍數，如果是就噴 100 片，否則 30 片
+                let confettiAmount = (playerLV % 5 === 0) ? 100 : 30;
+                fireConfetti(confettiAmount);
+
+                // 手機震動 (慶祝模式：短-短-長)
+                if (isMobile && navigator.vibrate) {
+                    navigator.vibrate([50, 50, 100]); 
+                }
+            }
+
             updateHUD();
         }
 
@@ -876,7 +932,7 @@
 
         startBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
-            menuBgVideo.style.display = 'none'; // 隱藏影片，顯示遊戲畫面
+            menuBgVideo.style.display = 'none'; 
             gameStage.style.display = 'block';
             pauseOverlay.style.display = 'none'; 
             isPaused = false; 
@@ -886,15 +942,16 @@
         openSettingsBtn.addEventListener('click', () => {
             settingsSource = 'main'; 
             mainMenu.style.display = 'none';
-            // 主畫面進入，影片保持顯示
+            settingsMenu.style.backgroundImage = "url('game_start_background.png')";
             settingsMenu.style.display = 'flex';
         });
 
         gameSettingsBtn.addEventListener('click', () => {
             settingsSource = 'game'; 
             if (!isPaused) togglePause(); 
+            
             pauseOverlay.style.display = 'none'; 
-            // 從遊戲內進入，影片已經隱藏，只顯示選單(毛玻璃會模糊下方的遊戲畫面)
+            settingsMenu.style.backgroundImage = 'none';
             settingsMenu.style.display = 'flex'; 
         });
 
@@ -963,7 +1020,7 @@
         homeBtn.addEventListener('click', () => {
             gameStage.style.display = 'none';
             mainMenu.style.display = 'flex';
-            menuBgVideo.style.display = 'block'; // 重新顯示動畫背景
+            menuBgVideo.style.display = 'block'; 
             
             restartGame(); 
             isPaused = true;
