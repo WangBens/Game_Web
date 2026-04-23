@@ -9,19 +9,25 @@
            CSS 樣式區塊：負責畫面排版、顏色與動畫特效
            ========================================= */
         
+        /* 定義全域縮放變數 */
+        :root {
+            --scale: 1;
+            --vh: 1vh;
+        }
+
         /* === 1. 網頁基礎與遊戲舞台 === */
         html, body {
             margin: 0;
             padding: 0;
             background-color: #000;
             font-family: sans-serif;
-            /* 鎖定螢幕，解決手機網址列造成的畫面擠壓與裁切 */
+            /* 鎖定死螢幕，徹底解決手機網址列造成的畫面擠壓與底部裁切 */
             position: fixed; 
             top: 0; 
             left: 0;
             width: 100%;
             height: 100vh; /* Fallback */
-            height: calc(var(--vh, 1vh) * 100); /* 接收 JS 傳來的真實可視高度 */
+            height: calc(var(--vh, 1vh) * 100); 
             overflow: hidden; 
             user-select: none; 
             -webkit-user-select: none;
@@ -40,7 +46,6 @@
             display: none; 
         }
 
-        /* 當遊戲暫停時，強制凍結舞台內所有的 CSS 動畫 */
         .paused-anim * {
             animation-play-state: paused !important;
         }
@@ -51,13 +56,13 @@
             bottom: 0;
             left: 0;
             display: flex;
-            height: 400px;
+            height: calc(400px * var(--scale));
             width: max-content;
         }
 
         .floor-track img {
-            width: 800px;
-            height: 400px;
+            width: calc(800px * var(--scale));
+            height: calc(400px * var(--scale));
             object-fit: cover;
             image-rendering: pixelated; 
             flex-shrink: 0; 
@@ -66,14 +71,14 @@
         /* === 3. 主角定位與樣式 === */
         #playerWrapper {
             position: absolute;
-            bottom: 80px; 
+            bottom: calc(80px * var(--scale)); 
             left: 50%; 
             transform: translateX(-50%);
             z-index: 10;
         }
 
         #playerImg {
-            width: 150px;
+            width: calc(150px * var(--scale));
             image-rendering: pixelated; 
             transition: transform 0.1s; 
         }
@@ -81,7 +86,7 @@
         /* === 4. 怪物與子彈樣式 === */
         .monster {
             position: absolute;
-            width: 180px;
+            width: calc(180px * var(--scale));
             image-rendering: pixelated; 
             z-index: 5;
             transform-origin: center center; 
@@ -90,17 +95,16 @@
 
         .projectile {
             position: absolute;
-            font-size: 40px;
+            font-size: calc(40px * var(--scale));
             font-weight: bold;
             image-rendering: pixelated; 
             z-index: 15;
             color: #d84315;
-            text-shadow: 0 0 10px #ff8a65; 
+            text-shadow: 0 0 calc(10px * var(--scale)) #ff8a65; 
             transform-origin: center center;
         }
 
-        /* === 5. 特效相關的 CSS 關鍵影格 (Keyframes) 動畫 === */
-        
+        /* === 5. 特效相關的 CSS 動畫 === */
         @keyframes monsterShake {
             0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
             10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
@@ -121,8 +125,8 @@
         }
 
         @keyframes whiteLightEffect {
-            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: 0 0 10px 5px #fff; }
-            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; box-shadow: 0 0 40px 20px #fff; }
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; box-shadow: 0 0 calc(10px * var(--scale)) calc(5px * var(--scale)) #fff; }
+            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; box-shadow: 0 0 calc(40px * var(--scale)) calc(20px * var(--scale)) #fff; }
         }
 
         @keyframes logoBreathe {
@@ -142,7 +146,8 @@
         
         .vfx-light {
             position: absolute;
-            width: 15px; height: 15px;
+            width: calc(15px * var(--scale)); 
+            height: calc(15px * var(--scale));
             background-color: white;
             border-radius: 50%;
             z-index: 100;
@@ -151,73 +156,79 @@
         }
 
         /* === 6. UI 介面 (抬頭顯示器 HUD) === */
-        .hud-hp { position: absolute; top: 20px; left: 20px; z-index: 100; }
+        .hud-hp { position: absolute; top: calc(20px * var(--scale)); left: calc(20px * var(--scale)); z-index: 100; }
         
         .hud-highest-lv {
-            position: absolute; top: 75px; left: 20px;
+            position: absolute; top: calc(75px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
-            border: 1px solid rgba(255, 215, 0, 0.4);
-            padding: 5px 12px; border-radius: 15px;
-            color: #ffd54f; font-weight: bold; font-size: 14px;
+            border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
+            padding: calc(5px * var(--scale)) calc(12px * var(--scale)); 
+            border-radius: calc(15px * var(--scale));
+            color: #ffd54f; font-weight: bold; 
+            font-size: calc(14px * var(--scale));
             z-index: 100; text-shadow: 1px 1px 2px black;
             backdrop-filter: blur(5px);
         }
 
         .hud-exp {
-            position: absolute; bottom: 5px; left: 50%;
+            position: absolute; bottom: calc(5px * var(--scale)); left: 50%;
             transform: translateX(-50%); z-index: 100;
         }
 
         .stat-box {
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(0, 0, 0, 0.6); padding: 8px 15px;
-            border-radius: 25px; border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex; align-items: center; gap: calc(10px * var(--scale));
+            background: rgba(0, 0, 0, 0.6); 
+            padding: calc(8px * var(--scale)) calc(15px * var(--scale));
+            border-radius: calc(25px * var(--scale)); 
+            border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
             color: white; font-weight: bold; backdrop-filter: blur(5px);
         }
-        .stat-label { font-size: 18px; min-width: 45px; text-shadow: 1px 1px 2px black; }
+        .stat-label { font-size: calc(18px * var(--scale)); min-width: calc(45px * var(--scale)); text-shadow: 1px 1px 2px black; }
         .bar-bg {
-            width: 200px; height: 18px;
-            background: rgba(255, 255, 255, 0.2); border-radius: 10px;
-            overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+            width: calc(200px * var(--scale)); height: calc(18px * var(--scale));
+            background: rgba(255, 255, 255, 0.2); border-radius: calc(10px * var(--scale));
+            overflow: hidden; box-shadow: inset 0 calc(2px * var(--scale)) calc(5px * var(--scale)) rgba(0,0,0,0.5);
         }
         .bar-fill { height: 100%; transition: width 0.3s ease-out; }
         .hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); width: 100%; }
         .exp-fill { background: linear-gradient(90deg, #fbc02d, #ffeb3b); width: 0%; }
-        .stat-text { font-size: 14px; min-width: 70px; text-align: center; }
+        .stat-text { font-size: calc(14px * var(--scale)); min-width: calc(70px * var(--scale)); text-align: center; }
 
         #gameLogo {
-            position: absolute; top: -20px; right: -30px; width: 300px; 
+            position: absolute; top: calc(-20px * var(--scale)); right: calc(-30px * var(--scale)); 
+            width: calc(300px * var(--scale)); 
             z-index: 90; pointer-events: none; 
             animation: logoBreathe 2.5s infinite ease-in-out; 
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8)); 
+            filter: drop-shadow(0 0 calc(10px * var(--scale)) rgba(0,0,0,0.8)); 
         }
 
         .hint { 
-            position: absolute; top: 80px; width: 100%;
+            position: absolute; top: calc(80px * var(--scale)); width: 100%;
             text-align: center; color: rgba(255,255,255,0.4); 
-            font-size: 16px; pointer-events: none; z-index: 100;
+            font-size: calc(16px * var(--scale)); pointer-events: none; z-index: 100;
         }
 
-        /* === 7. 操作按鈕 (左/右/跳躍/攻擊/系統) === */
-        .controls-left { position: absolute; bottom: max(40px, env(safe-area-inset-bottom)); left: 40px; display: flex; gap: 20px; z-index: 100; }
-        .controls-right { position: absolute; bottom: max(40px, env(safe-area-inset-bottom)); right: 40px; display: flex; flex-direction: column-reverse; gap: 20px; z-index: 100; align-items: flex-end; }
-        .controls-top-center { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 100; }
+        /* === 7. 操作按鈕 === */
+        .controls-left { position: absolute; bottom: calc(40px * var(--scale)); left: calc(40px * var(--scale)); display: flex; gap: calc(20px * var(--scale)); z-index: 100; }
+        .controls-right { position: absolute; bottom: calc(40px * var(--scale)); right: calc(40px * var(--scale)); display: flex; flex-direction: column-reverse; gap: calc(20px * var(--scale)); z-index: 100; align-items: flex-end; }
+        .controls-top-center { position: absolute; top: calc(20px * var(--scale)); left: 50%; transform: translateX(-50%); display: flex; gap: calc(15px * var(--scale)); z-index: 100; }
 
         .btn {
-            width: 70px; height: 70px;
+            width: calc(70px * var(--scale)); height: calc(70px * var(--scale));
             background: rgba(255, 255, 255, 0.2); color: white;
-            border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%;
-            font-size: 28px; cursor: pointer; display: flex;
+            border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.5); 
+            border-radius: 50%;
+            font-size: calc(28px * var(--scale)); cursor: pointer; display: flex;
             justify-content: center; align-items: center;
             backdrop-filter: blur(5px); transition: 0.1s;
         }
         .btn:active { background: rgba(255, 255, 255, 0.5); transform: scale(0.9); }
         
-        .btn.jump-btn { width: 90px; height: 90px; font-size: 22px; font-weight: bold; background: rgba(216, 67, 21, 0.6); border-color: rgba(255, 138, 101, 0.8); }
+        .btn.jump-btn { width: calc(90px * var(--scale)); height: calc(90px * var(--scale)); font-size: calc(22px * var(--scale)); font-weight: bold; background: rgba(216, 67, 21, 0.6); border-color: rgba(255, 138, 101, 0.8); }
         .btn.jump-btn:active { background: rgba(191, 54, 12, 0.8); }
-        .btn.attack-btn { width: 80px; height: 80px; font-size: 20px; font-weight: bold; background: rgba(191, 54, 12, 0.6); border-color: rgba(255, 138, 101, 0.8); }
+        .btn.attack-btn { width: calc(80px * var(--scale)); height: calc(80px * var(--scale)); font-size: calc(20px * var(--scale)); font-weight: bold; background: rgba(191, 54, 12, 0.6); border-color: rgba(255, 138, 101, 0.8); }
         .btn.attack-btn:active { background: rgba(127, 36, 8, 0.8); }
-        .btn.sys-btn { width: auto; height: 40px; padding: 0 15px; font-size: 14px; border-radius: 20px; font-weight: bold; }
+        .btn.sys-btn { width: auto; height: calc(40px * var(--scale)); padding: 0 calc(15px * var(--scale)); font-size: calc(14px * var(--scale)); border-radius: calc(20px * var(--scale)); font-weight: bold; }
         .btn.sys-btn.pause-toggle { background: rgba(255, 193, 7, 0.5); border-color: rgba(255, 235, 59, 0.8); }
 
         /* === 8. 遊戲暫停選單 === */
@@ -227,17 +238,18 @@
             z-index: 999; display: flex; justify-content: center; align-items: center;
         }
         .pause-menu {
-            background: rgba(20, 20, 20, 0.8); padding: 50px 80px;
-            border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.2);
-            display: flex; flex-direction: column; gap: 25px; text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            background: rgba(20, 20, 20, 0.8); padding: calc(50px * var(--scale)) calc(80px * var(--scale));
+            border-radius: calc(20px * var(--scale)); border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: calc(25px * var(--scale)); text-align: center;
+            box-shadow: 0 calc(10px * var(--scale)) calc(40px * var(--scale)) rgba(0,0,0,0.8);
         }
-        .pause-menu h2 { color: white; margin: 0 0 20px 0; font-size: 40px; letter-spacing: 5px; text-shadow: 2px 2px 5px black; }
+        .pause-menu h2 { color: white; margin: 0 0 calc(20px * var(--scale)) 0; font-size: calc(40px * var(--scale)); letter-spacing: calc(5px * var(--scale)); text-shadow: 2px 2px 5px black; }
 
         .menu-btn {
             background: rgba(255, 255, 255, 0.8); color: #111; border: none;
-            padding: 15px 40px; font-size: 22px; font-weight: bold;
-            border-radius: 40px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            padding: calc(15px * var(--scale)) calc(40px * var(--scale)); 
+            font-size: calc(22px * var(--scale)); font-weight: bold;
+            border-radius: calc(40px * var(--scale)); cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .menu-btn:hover { background: white; transform: scale(1.05); }
         .menu-btn:active { transform: scale(0.95); }
@@ -253,24 +265,24 @@
             background-size: cover; background-position: center;
         }
         #mainMenuLogo {
-            width: 450px; margin-bottom: 40px;
+            width: calc(450px * var(--scale)); margin-bottom: calc(40px * var(--scale));
             animation: mainLogoBreathe 3s infinite ease-in-out;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
         }
-        .main-btn-group { display: flex; flex-direction: column; gap: 20px; width: 250px; }
+        .main-btn-group { display: flex; flex-direction: column; gap: calc(20px * var(--scale)); width: calc(250px * var(--scale)); }
         
         .blur-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); z-index: -1;
         }
         .settings-content {
-            background: rgba(20, 20, 20, 0.8); padding: 50px 80px;
-            border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.2);
-            display: flex; flex-direction: column; gap: 25px; text-align: center; color: white;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            background: rgba(20, 20, 20, 0.8); padding: calc(50px * var(--scale)) calc(80px * var(--scale));
+            border-radius: calc(20px * var(--scale)); border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: calc(25px * var(--scale)); text-align: center; color: white;
+            box-shadow: 0 calc(10px * var(--scale)) calc(40px * var(--scale)) rgba(0,0,0,0.8);
         }
-        .settings-content h2 { margin: 0; font-size: 36px; letter-spacing: 3px; }
-        .settings-item { display: flex; flex-direction: column; gap: 10px; align-items: center; font-size: 20px; font-weight: bold; }
+        .settings-content h2 { margin: 0; font-size: calc(36px * var(--scale)); letter-spacing: calc(3px * var(--scale)); }
+        .settings-item { display: flex; flex-direction: column; gap: calc(10px * var(--scale)); align-items: center; font-size: calc(20px * var(--scale)); font-weight: bold; }
         input[type=range] { width: 100%; cursor: pointer; }
 
         /* === 10. 手機直向螢幕旋轉提示層 === */
@@ -303,13 +315,6 @@
             0% { transform: rotate(0deg); }
             50% { transform: rotate(90deg); }
             100% { transform: rotate(90deg); }
-        }
-
-        /* 核心：當螢幕為直向時，強制顯示旋轉提示 */
-        @media screen and (orientation: portrait) {
-            #orientationOverlay {
-                display: flex !important;
-            }
         }
     </style>
 </head>
@@ -400,30 +405,59 @@
     </div>
 
     <script>
-        // === 動態調整可視高度 (解決手機 100vh 跑版問題) ===
+        // === 響應式邏輯與環境偵測 ===
+        
+        // 偵測是否為手機或平板 (用於決定是否開啟強制橫屏)
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // 核心渲染縮放值 (分離邏輯與渲染，確保效能與排版精準)
+        let gameScale = 1;
+
         function fixViewportHeight() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
+            
+            // 基礎設計畫面高度設為 800px，計算當前螢幕的等比例縮放值
+            gameScale = window.innerHeight / 800;
+            document.documentElement.style.setProperty('--scale', gameScale);
+
+            checkOrientation();
         }
         window.addEventListener('resize', fixViewportHeight);
         window.addEventListener('orientationchange', fixViewportHeight);
-        fixViewportHeight();
+        fixViewportHeight(); // 初始執行
+
+        // 偵測直立螢幕並強制暫停遊戲
+        function checkOrientation() {
+            if (!isMobile) return; // 僅在手機與平板執行
+
+            const isPortrait = window.innerHeight > window.innerWidth;
+            const overlay = document.getElementById('orientationOverlay');
+            
+            if (isPortrait) {
+                overlay.style.display = 'flex';
+                // 如果遊戲正在進行中，強制進入暫停狀態
+                if (gameStage.style.display === 'block' && !isPaused) {
+                    togglePause(); 
+                }
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
 
         // === 1. 取得 HTML DOM 元素 ===
-        const playerWrapper = document.getElementById('playerWrapper'); // 控制跳躍高度
-        const playerImg = document.getElementById('playerImg');         // 控制轉向與動畫圖
-        const floorTrack = document.getElementById('floorTrack');       // 控制地板捲動
+        const playerWrapper = document.getElementById('playerWrapper'); 
+        const playerImg = document.getElementById('playerImg');         
+        const floorTrack = document.getElementById('floorTrack');       
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const gameStage = document.getElementById('gameStage');
         
-        // 遊戲內暫停選單按鈕
         const pauseBtn = document.getElementById('pauseBtn');
         const pauseOverlay = document.getElementById('pauseOverlay');
         const resumeBtn = document.getElementById('resumeBtn');
         const restartBtn = document.getElementById('restartBtn');
         const homeBtn = document.getElementById('homeBtn');
 
-        // 主畫面與設定畫面按鈕
         const mainMenu = document.getElementById('mainMenu');
         const settingsMenu = document.getElementById('settingsMenu');
         const startBtn = document.getElementById('startBtn');
@@ -438,57 +472,53 @@
         let playerMaxHP = 100;
         let playerLV = 1;
         let playerEXP = 0;
-        let playerMaxEXP = 2; // 升級所需經驗值
+        let playerMaxEXP = 2; 
 
-        // 從瀏覽器本地儲存讀取最高紀錄，若無則預設為 1
         let highestLV = localStorage.getItem('rpg_game_highest_lv');
         highestLV = highestLV ? parseInt(highestLV) : 1;
 
         // === 3. 圖片資源與動畫陣列 ===
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
-        const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png']; // 玩家跑步
-        const jumpImg = 'run_6.png'; // 玩家跳躍圖
-        const standImg = 'yayun_stand.png'; // 玩家站立圖
+        const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png']; 
+        const jumpImg = 'run_6.png'; 
+        const standImg = 'yayun_stand.png'; 
         
-        const monsterWalkCycle = ['mouse_run1.png', 'mouse_run2.png', 'mouse_run3.png', 'mouse_run4.png', 'mouse_run5.png', 'mouse_run6.png']; // 怪物跑步
-        const harmImg = 'harm_mouse.png'; // 怪物受傷圖
-        const attackImg = 'yayun_attack.png'; // 玩家攻擊圖
+        const monsterWalkCycle = ['mouse_run1.png', 'mouse_run2.png', 'mouse_run3.png', 'mouse_run4.png', 'mouse_run5.png', 'mouse_run6.png']; 
+        const harmImg = 'harm_mouse.png'; 
+        const attackImg = 'yayun_attack.png'; 
 
-        // 動畫與物理控制變數
-        let currentFrame = 0; // 玩家動畫幀數
-        let animTimer = 0;    // 玩家動畫計時器
+        // === 4. 邏輯常數與變數 (脫離像素絕對綁定) ===
+        const BASE_MOVE_SPEED = 6;
+        const BASE_FLOOR_WIDTH = 800;
+        const BASE_JUMP_POWER = 18;
+        const BASE_GRAVITY = 1.2;
+        const BASE_MONSTER_SPEED = 2;
+        const BASE_PROJECTILE_SPEED = 12;
+        const HARM_STATE_TIME = 200;
+
+        let currentFrame = 0; 
+        let animTimer = 0;    
         
-        let movingDir = 0;    // 玩家移動方向 (-1左, 1右, 0停)
-        let floorX = -800;    // 地板捲動初始座標
-        const moveSpeed = 6;  // 捲動速度
+        let movingDir = 0;    
+        let logicFloorX = -800; // 底層邏輯座標
 
         let isJumping = false;
-        let charY = 0;       // 玩家當前離地高度
-        let velocityY = 0;   // 玩家 Y 軸速度
-        const jumpPower = 18;// 起跳力度
-        const gravity = 1.2; // 重力加速度
+        let logicCharY = 0;     // 玩家底層離地高度
+        let logicVelocityY = 0; 
 
-        let facingDir = 1;   // 玩家面向 (用於決定火球發射方向)
-        let attacking = false; // 是否正在攻擊
-        let attackTimer = 0;   // 攻擊動作維持時間
+        let facingDir = 1;   
+        let attacking = false; 
+        let attackTimer = 0;   
 
-        // === 4. 物件管理陣列 (存放畫面上的實體) ===
-        let monsters = [];    // 怪物陣列
-        let projectiles = []; // 子彈(火球)陣列
+        let monsters = [];    
+        let projectiles = []; 
 
-        let monsterSpawnTimer = 1500; // 怪物生成倒數計時器
-        const monsterSpeed = 2;       // 怪物基礎移動速度
-        const projectileSpeed = 12;   // 火球飛行速度
-        const HARM_STATE_TIME = 200;  // 怪物受傷震動持續時間 (毫秒)
-
-        const keys = { left: false, right: false }; // 鍵盤按鍵狀態紀錄
-        
-        // 因為一開始顯示主畫面，所以預設為暫停狀態，避免遊戲在後台偷偷跑
+        let monsterSpawnTimer = 1500; 
+        const keys = { left: false, right: false }; 
         let isPaused = true; 
 
         // === 5. 遊戲核心函數 ===
 
-        // 更新 UI 介面文字與進度條
         function updateHUD() {
             document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
             document.getElementById('hpBar').style.width = `${(playerHP / playerMaxHP) * 100}%`;
@@ -500,16 +530,14 @@
             document.getElementById('highestLvText').innerText = highestLV;
         }
 
-        // 獲得經驗值與升級計算
         function gainEXP(amount) {
             playerEXP += amount;
             
             while (playerEXP >= playerMaxEXP) {
-                playerEXP -= playerMaxEXP; // 扣掉升級花費
-                playerLV++;                // 等級提升
-                playerMaxEXP = Math.pow(2, playerLV); // 下一級所需經驗加倍
+                playerEXP -= playerMaxEXP; 
+                playerLV++;                
+                playerMaxEXP = Math.pow(2, playerLV); 
 
-                // 檢查是否打破歷史最高紀錄，並存檔
                 if (playerLV > highestLV) {
                     highestLV = playerLV;
                     localStorage.setItem('rpg_game_highest_lv', highestLV);
@@ -518,128 +546,116 @@
             updateHUD();
         }
 
-        // 隨機抽取一張地板圖片
         function getRandomFloor() {
             return floorImages[Math.floor(Math.random() * floorImages.length)];
         }
 
-        // 遊戲初始化：預先塞入 10 張地板以防破圖
         for (let i = 0; i < 10; i++) {
             let img = document.createElement('img');
             img.src = getRandomFloor();
             floorTrack.appendChild(img);
         }
 
-        updateHUD(); // 啟動時先更新一次面板
-
-        // --- 設定每 20 毫秒 (約 50 FPS) 執行一次主迴圈 ---
+        updateHUD(); 
         setInterval(gameLoop, 20);
 
-        // --- 主迴圈 (Game Loop) ---
         function gameLoop() {
-            if (isPaused) return; // 暫停或在主畫面時，不執行任何更新
+            if (isPaused) return; 
 
-            updatePhysics();  // 處理跳躍重力
-            updateFloor();    // 處理地板捲動
-            updateEntities(); // 處理怪物移動、子彈飛行與碰撞偵測
-            updateAnimation();// 處理角色圖片切換
+            updatePhysics();  
+            updateFloor();    
+            updateEntities(); 
+            updateAnimation();
         }
 
-        // 處理玩家移動 (實際上是地板往反方向捲動)
         function updateFloor() {
             if (movingDir !== 0) {
-                floorX -= movingDir * moveSpeed; 
-                playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)'; // 轉身
+                logicFloorX -= movingDir * BASE_MOVE_SPEED; 
+                playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)'; 
                 facingDir = movingDir;
             }
 
-            // 無限捲動邏輯 (偷天換日法：移出視角的圖刪掉，補到另一邊)
-            if (floorX <= -1600) {
-                floorX += 800; 
+            if (logicFloorX <= -BASE_FLOOR_WIDTH * 2) {
+                logicFloorX += BASE_FLOOR_WIDTH; 
                 floorTrack.removeChild(floorTrack.firstElementChild); 
                 let newImg = document.createElement('img');
                 newImg.src = getRandomFloor();
                 floorTrack.appendChild(newImg); 
             }
-            else if (floorX >= 0) {
-                floorX -= 800; 
+            else if (logicFloorX >= 0) {
+                logicFloorX -= BASE_FLOOR_WIDTH; 
                 floorTrack.removeChild(floorTrack.lastElementChild); 
                 let newImg = document.createElement('img');
                 newImg.src = getRandomFloor();
                 floorTrack.insertBefore(newImg, floorTrack.firstElementChild); 
             }
-            floorTrack.style.transform = `translateX(${floorX}px)`;
+            
+            // 算好邏輯再套用縮放比例渲染，避免跑版
+            floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
         }
 
-        // 處理玩家的跳躍重力物理
         function updatePhysics() {
             if (isJumping) {
-                charY += velocityY; 
-                velocityY -= gravity; // 每幀扣除重力
+                logicCharY += logicVelocityY; 
+                logicVelocityY -= BASE_GRAVITY; 
 
-                // 落地判定
-                if (charY <= 0) {
-                    charY = 0;
+                if (logicCharY <= 0) {
+                    logicCharY = 0;
                     isJumping = false;
-                    velocityY = 0;
+                    logicVelocityY = 0;
                 }
-                playerWrapper.style.transform = `translate(-50%, -${charY}px)`;
+                playerWrapper.style.transform = `translate(-50%, -${logicCharY * gameScale}px)`;
             }
         }
 
-        // 處理玩家圖片動畫切換
         function updateAnimation() {
             if (attacking) {
                 playerImg.src = attackImg;
                 attackTimer -= 20; 
-                if (attackTimer <= 0) attacking = false; // 攻擊結束
+                if (attackTimer <= 0) attacking = false; 
                 return; 
             }
 
             if (isJumping) {
-                playerImg.src = jumpImg; // 空中定格圖片
+                playerImg.src = jumpImg; 
                 return;
             }
 
             if (movingDir === 0) {
-                playerImg.src = standImg; // 站立圖
+                playerImg.src = standImg; 
                 currentFrame = 0;
                 animTimer = 0;
                 return;
             }
 
-            // 跑步動畫播放
             animTimer += 20; 
-            if (animTimer >= 100) { // 每 100 毫秒換下一張圖
+            if (animTimer >= 100) { 
                 currentFrame = (currentFrame + 1) % walkCycle.length;
                 playerImg.src = walkCycle[currentFrame];
                 animTimer = 0;
             }
         }
 
-        // 處理畫面上所有實體 (怪物與子彈) 的狀態
         function updateEntities() {
-            
-            // --- 1. 怪物生成 ---
             if (movingDir !== 0) {
                 monsterSpawnTimer -= 20; 
                 if (monsterSpawnTimer <= 0) {
                     spawnMonster();
-                    monsterSpawnTimer = Math.random() * 1500 + 1500; // 下一次生成時間重置
+                    monsterSpawnTimer = Math.random() * 1500 + 1500; 
                 }
             }
 
-            // --- 2. 怪物陣列處理 ---
+            // 動態螢幕邏輯寬度 (確保縮放後邊界刪除正常運作)
+            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
                 
-                // 怪物處於正常存活狀態
                 if (!monster.hit && !monster.done) {
-                    // 相對速度移動：(怪物基礎速度) - (主角移動造成的地板捲動)
-                    monster.x += (monsterSpeed * monster.dir) - (movingDir * moveSpeed);
-                    monster.el.style.left = monster.x + 'px';
+                    // 怪物相對移動計算
+                    monster.logicX += (BASE_MONSTER_SPEED * monster.dir) - (movingDir * BASE_MOVE_SPEED);
+                    monster.el.style.left = `${monster.logicX * gameScale}px`;
                     
-                    // 怪物專屬動畫切換
                     monster.animTimer += 20;
                     if (monster.animTimer >= 100) {
                         monster.frame = (monster.frame + 1) % monsterWalkCycle.length;
@@ -647,34 +663,29 @@
                         monster.animTimer = 0;
                     }
                     
-                    // 如果怪物完全飛出螢幕外，就刪除以節省效能
-                    if (monster.x < -200 || monster.x > gameStage.offsetWidth + 200) {
+                    if (monster.logicX < -200 || monster.logicX > screenLogicWidth + 200) {
                         gameStage.removeChild(monster.el);
                         monsters.splice(i, 1);
                         continue; 
                     }
                 }
 
-                // 怪物處於受傷顫抖狀態
                 if (monster.hit) {
                     monster.hitTimer -= 20; 
                     if (monster.hitTimer <= 0) {
-                        // 顫抖結束，進入死亡縮小動畫
                         monster.hit = false;
                         monster.done = true;
                         monster.doneTimer = 300; 
                         monster.el.className = 'monster monster-vanishing'; 
                         
-                        // 生成白光特效 (於老鼠中心)
-                        spawnTemporaryLightEffect(monster.x + 90, 120); 
+                        // 180 是怪物的基礎寬度，+90 正好打在它的中心點
+                        spawnTemporaryLightEffect(monster.logicX + 90, 120); 
                     }
                 }
                 
-                // 怪物處於死亡消失動畫中
                 if (monster.done) {
                     monster.doneTimer -= 20;
                     if (monster.doneTimer <= 0) {
-                        // 動畫播完，將怪物從網頁與陣列中徹底移除
                         if (monster.el.parentNode) gameStage.removeChild(monster.el);
                         monsters.splice(i, 1);
                         continue;
@@ -682,47 +693,40 @@
                 }
             }
 
-            // --- 3. 子彈陣列處理與碰撞偵測 ---
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let projectile = projectiles[i];
-                // 火球飛行
-                projectile.x += projectileSpeed * projectile.dir;
-                projectile.el.style.left = projectile.x + 'px';
+                projectile.logicX += BASE_PROJECTILE_SPEED * projectile.dir;
+                projectile.el.style.left = `${projectile.logicX * gameScale}px`;
 
-                let projectileRect = projectile.el.getBoundingClientRect(); // 取得火球碰撞框
+                let projectileRect = projectile.el.getBoundingClientRect(); 
 
-                // 檢查此火球是否碰到任何存活的怪物
                 for (let j = monsters.length - 1; j >= 0; j--) {
                     let monster = monsters[j];
-                    if (monster.hit || monster.done) continue; // 忽略已受傷或已死的怪物
+                    if (monster.hit || monster.done) continue; 
                     
-                    let monsterRect = monster.el.getBoundingClientRect(); // 取得怪物碰撞框
+                    let monsterRect = monster.el.getBoundingClientRect(); 
 
-                    // AABB 碰撞偵測演算法 (檢查兩個矩形是否重疊)
                     if (
                         projectileRect.x < monsterRect.x + monsterRect.width &&
                         projectileRect.x + projectileRect.width > monsterRect.x &&
                         projectileRect.y < monsterRect.y + monsterRect.height &&
                         projectileRect.y + projectileRect.height > monsterRect.y
                     ) {
-                        // 碰撞發生！
-                        gameStage.removeChild(projectile.el); // 移除火球
+                        gameStage.removeChild(projectile.el); 
                         projectiles.splice(i, 1); 
                         
-                        // 設定怪物進入受傷狀態
                         monster.hit = true; 
                         monster.hitTimer = HARM_STATE_TIME; 
-                        monster.el.src = harmImg; // 換上受傷圖
-                        monster.el.className = 'monster monster-hit'; // 套用震動 CSS
+                        monster.el.src = harmImg; 
+                        monster.el.className = 'monster monster-hit'; 
                         
-                        gainEXP(1); // 獲得經驗
-                        break; // 此火球已消耗，跳出內圈迴圈
+                        gainEXP(1); 
+                        break; 
                     }
                 }
 
-                // 清除飛出畫面的火球
                 if (projectiles[i] === projectile) { 
-                    if (projectile.x < -100 || projectile.x > gameStage.offsetWidth + 100) {
+                    if (projectile.logicX < -100 || projectile.logicX > screenLogicWidth + 100) {
                         if (projectile.el.parentNode) {
                             gameStage.removeChild(projectile.el);
                             projectiles.splice(i, 1);
@@ -732,75 +736,62 @@
             }
         }
 
-        // 生成新怪物
         function spawnMonster() {
             let img = document.createElement('img');
             img.src = monsterWalkCycle[0]; 
             img.className = 'monster';
-            img.style.width = '180px'; 
             
-            let initialX, dir;
-            // 決定生成位置與行進方向
-            if (movingDir === 1) { 
-                initialX = gameStage.offsetWidth;
-                dir = -1; // 從右邊出現往左走
-            } else if (movingDir === -1) { 
-                initialX = -180; 
-                dir = 1;  // 從左邊出現往右走
-            }
+            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+            let initialLogicX = movingDir === 1 ? screenLogicWidth : -180;
+            let dir = movingDir === 1 ? -1 : 1; 
 
-            img.style.left = initialX + 'px';
-            img.style.bottom = '90px'; // 配合主角高度微調
+            img.style.left = `${initialLogicX * gameScale}px`;
+            
+            // 【修改點】高度調低為 90px 的比例縮放值
+            img.style.bottom = `calc(90px * var(--scale))`; 
 
-            // 處理鏡像翻轉
             let mirrorValue = (dir === 1) ? -1 : 1;
             img.style.setProperty('--mirror', mirrorValue);
 
             gameStage.appendChild(img);
-            // 寫入陣列資料
             monsters.push({ 
-                el: img, x: initialX, dir: dir, hit: false, hitTimer: 0, 
+                el: img, logicX: initialLogicX, dir: dir, hit: false, hitTimer: 0, 
                 done: false, doneTimer: 0, frame: 0, animTimer: 0
             });
         }
 
-        // 生成獨立的白光特效
-        function spawnTemporaryLightEffect(x, y) {
+        function spawnTemporaryLightEffect(logicX, logicY) {
             let span = document.createElement('div');
             span.className = 'vfx-light';
-            span.style.left = `${x}px`;
-            span.style.bottom = `${y}px`;
+            span.style.left = `${logicX * gameScale}px`;
+            span.style.bottom = `${logicY * gameScale}px`;
             gameStage.appendChild(span);
             
-            // 監聽 CSS 動畫結束事件，播完自動刪除節省記憶體
             span.addEventListener('animationend', () => {
                 if (span.parentNode) gameStage.removeChild(span); 
             });
         }
 
-        // 玩家發射火球
         function spawnProjectile() {
             let span = document.createElement('span');
             span.innerHTML = '🔥';
             span.className = 'projectile';
-            span.style.fontSize = '40px'; 
-            span.style.imageRendering = 'pixelated';
             
-            // 根據玩家目前的方向，決定火球的正確旋轉角度
+            // 【修正點】根據玩家目前的方向，決定火球的正確旋轉角度
             if (facingDir === 1) {
                 span.style.transform = 'rotate(90deg)';
             } else {
                 span.style.transform = 'rotate(-90deg)';
             }
             
-            // 計算發射起點 (對準主角的手部)
-            let spawnX = gameStage.offsetWidth / 2;
-            let spawnY = 80 + charY + 80; 
+            // 對準手部：螢幕中心 + 玩家身體偏移
+            let spawnLogicX = (gameStage.offsetWidth / gameScale) / 2;
+            let spawnLogicY = 80 + logicCharY + 80; 
 
-            span.style.left = spawnX + 'px';
-            span.style.bottom = spawnY + 'px';
+            span.style.left = `${spawnLogicX * gameScale}px`;
+            span.style.bottom = `${spawnLogicY * gameScale}px`;
             gameStage.appendChild(span);
-            projectiles.push({ el: span, x: spawnX, dir: facingDir });
+            projectiles.push({ el: span, logicX: spawnLogicX, dir: facingDir });
         }
 
         // === 6. 玩家控制邏輯 ===
@@ -808,7 +799,7 @@
         function jump() {
             if (!isJumping && !isPaused) {
                 isJumping = true;
-                velocityY = jumpPower; 
+                logicVelocityY = BASE_JUMP_POWER; 
             }
         }
 
@@ -821,7 +812,6 @@
             }
         }
 
-        // 判斷當前按下的按鍵，決定移動方向
         function updateMovingDir() {
             if (keys.right && !keys.left) movingDir = 1;
             else if (keys.left && !keys.right) movingDir = -1;
@@ -830,47 +820,40 @@
 
         // === 7. 系統功能 (暫停與選單切換) ===
 
-        // 主畫面 -> 開始遊戲
         startBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
             gameStage.style.display = 'block';
-            pauseOverlay.style.display = 'none'; // 【修正】確保開始遊戲時暫停選單絕對是關閉的
-            isPaused = false; // 解除凍結開始遊戲迴圈
-            checkOrientation(); // 確保開始遊玩時，如果直向會立刻暫停
+            pauseOverlay.style.display = 'none'; 
+            isPaused = false; 
+            checkOrientation(); 
         });
 
-        // 主畫面 -> 設定畫面
         openSettingsBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
             settingsMenu.style.display = 'flex';
         });
 
-        // 主畫面 -> 回到瀏覽器
         exitBrowserBtn.addEventListener('click', () => {
-            window.location.href = 'https://www.google.com'; // 強制導向 Google 首頁
+            window.location.href = 'https://www.google.com'; 
         });
 
-        // 設定畫面 -> 返回主畫面
         closeSettingsBtn.addEventListener('click', () => {
             settingsMenu.style.display = 'none';
             mainMenu.style.display = 'flex';
         });
 
-        // 調整音量數值顯示 (目前僅為視覺 UI 連動)
         volumeSlider.addEventListener('input', (e) => {
             volText.innerText = e.target.value;
         });
 
-        // 遊戲內暫停開關
         function togglePause() {
             isPaused = !isPaused;
             if (isPaused) {
-                pauseOverlay.style.display = 'flex';       // 顯示暫停選單
-                gameStage.classList.add('paused-anim');    // 凍結 CSS 動畫
+                pauseOverlay.style.display = 'flex';       
+                gameStage.classList.add('paused-anim');    
             } else {
-                pauseOverlay.style.display = 'none';       // 隱藏暫停選單
-                gameStage.classList.remove('paused-anim'); // 解除凍結
-                // 防呆：解除暫停時重置移動狀態，避免暴衝
+                pauseOverlay.style.display = 'none';       
+                gameStage.classList.remove('paused-anim'); 
                 keys.left = false;
                 keys.right = false;
                 updateMovingDir();
@@ -878,13 +861,11 @@
         }
 
         function restartGame() {
-            // 重置數值
             playerLV = 1;
             playerEXP = 0;
             playerMaxEXP = 2; 
             updateHUD();
 
-            // 清除畫面實體
             monsters.forEach(m => { if (m.el.parentNode) gameStage.removeChild(m.el); });
             monsters = [];
             projectiles.forEach(p => { if (p.el.parentNode) gameStage.removeChild(p.el); });
@@ -893,56 +874,30 @@
                 if (light.parentNode) gameStage.removeChild(light);
             });
 
-            // 重置玩家
-            charY = 0; velocityY = 0;
+            logicCharY = 0; logicVelocityY = 0; logicFloorX = -800;
             isJumping = false; attacking = false; movingDir = 0;
             keys.left = false; keys.right = false;
             playerImg.src = standImg;
             playerWrapper.style.transform = `translate(-50%, -0px)`;
             
-            togglePause(); // 關閉選單並繼續
+            togglePause(); 
         }
 
-        // 暫停選單 -> 回到主畫面
         homeBtn.addEventListener('click', () => {
             gameStage.style.display = 'none';
             mainMenu.style.display = 'flex';
             
-            // 順便重置遊戲內容以備下次遊玩 (這內部會觸發一次 togglePause 把選單隱藏、isPaused=false)
             restartGame(); 
-            
-            // 【修正】因為 restartGame() 會把 isPaused 變成 false，導致背景偷跑
-            // 我們手動把它改回 true 來凍結主畫面，且「不呼叫 togglePause()」避免重新打開選單！
             isPaused = true;
             pauseOverlay.style.display = 'none'; 
         });
 
-        // === 8. 螢幕方向偵測機制 (Orientation) ===
-        function checkOrientation() {
-            // 判斷是否為直向螢幕
-            const isPortrait = window.innerHeight > window.innerWidth;
-            
-            // 如果遊戲正在遊玩中 (gameStage 顯示中) 且 螢幕變成直向
-            if (isPortrait && gameStage.style.display === 'block') {
-                // 如果遊戲還沒暫停，就強制暫停
-                if (!isPaused) {
-                    togglePause(); 
-                }
-            }
-        }
+        // === 8. 事件監聽綁定區 ===
 
-        // 監聽螢幕旋轉與視窗大小改變事件
-        window.addEventListener("orientationchange", checkOrientation);
-        window.addEventListener("resize", checkOrientation);
-
-        // === 9. 事件監聽綁定區 ===
-
-        // 綁定遊戲內暫停按鈕
         pauseBtn.addEventListener('click', togglePause);
         resumeBtn.addEventListener('click', togglePause);
         restartBtn.addEventListener('click', restartGame);
 
-        // 綁定網頁按鈕 (滑鼠控制)
         document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('mouseleave', () => { keys.right = false; updateMovingDir(); });
@@ -954,7 +909,6 @@
         document.getElementById('jumpBtn').addEventListener('mousedown', jump);
         document.getElementById('attackBtn').addEventListener('mousedown', attack);
 
-        // 綁定網頁按鈕 (手機觸控)
         document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
         document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
@@ -962,12 +916,11 @@
         document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
         document.getElementById('attackBtn').addEventListener('touchstart', (e) => { e.preventDefault(); attack(); });
 
-        // 綁定鍵盤控制
         window.addEventListener('keydown', (e) => {
             if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
                 if (gameStage.style.display === 'block') togglePause();
             }
-            if (isPaused) return; // 暫停或主畫面中不受理行動操作
+            if (isPaused) return; 
             
             if (e.key === 'ArrowRight') keys.right = true;
             if (e.key === 'ArrowLeft') keys.left = true;
@@ -983,7 +936,6 @@
             updateMovingDir();
         });
 
-        // 全螢幕 API 綁定
         fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
                 gameStage.requestFullscreen().catch(err => { alert(`無法進入全螢幕：${err.message}`); });
