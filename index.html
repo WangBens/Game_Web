@@ -474,6 +474,23 @@
     </div>
 
     <script>
+        // === 禁用手機雙指縮放與雙擊放大 (iOS Safari 必備防護機制) ===
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(event) {
+            let now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
+
+        // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let gameScale = 1;
 
@@ -589,9 +606,6 @@
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
-        // =========================================
-        // 【更新】強制喚醒 Web Audio API 大法
-        // =========================================
         let audioCtx = null;
         let masterGain = null;
         let isBgmPlaying = false;
@@ -617,7 +631,6 @@
             43, 43, 55, 43, 43, 43, 55, 43  
         ];
 
-        // 破解手機防護機制的解鎖函數
         const unlockAudio = () => {
             if (isAudioUnlocked) return;
             
@@ -629,10 +642,9 @@
                 audioCtx.resume();
             }
 
-            // 【大絕招】偷偷播一段無聲的短音頻，騙過 iOS 和 Android 系統
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            gainNode.gain.value = 0; // 完全靜音
+            gainNode.gain.value = 0; 
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             oscillator.start(0);
@@ -640,14 +652,12 @@
 
             isAudioUnlocked = true;
             
-            // 解鎖成功後，移除監聽器，避免浪費效能
             document.removeEventListener('click', unlockAudio);
             document.removeEventListener('touchend', unlockAudio);
             
             initAudio();
         };
 
-        // 綁定兩種觸控事件，確保一定會命中
         document.addEventListener('click', unlockAudio);
         document.addEventListener('touchend', unlockAudio);
 
