@@ -9,9 +9,12 @@
            CSS 樣式區塊：負責畫面排版、顏色與動畫特效
            ========================================= */
         
+        /* 定義全域縮放變數 */
         :root {
             --scale: 1;
             --vh: 1vh;
+            /* 玩家自定義 UI 縮放比例，預設為 1 (100%) */
+            --user-ui-scale: 1;
         }
 
         /* === 1. 網頁基礎與遊戲舞台 === */
@@ -24,7 +27,7 @@
             top: 0; 
             left: 0;
             width: 100%;
-            height: 100vh; 
+            height: 100vh; /* Fallback */
             height: calc(var(--vh, 1vh) * 100); 
             overflow: hidden; 
             user-select: none; 
@@ -48,7 +51,7 @@
             animation-play-state: paused !important;
         }
 
-        /* === 2. 地板與背景捲動 (受 gameScale 影響) === */
+        /* === 2. 地板與背景捲動 === */
         .floor-track {
             position: absolute;
             bottom: 0;
@@ -66,11 +69,10 @@
             flex-shrink: 0; 
         }
 
-        /* === 3. 主角定位與樣式 (受 gameScale 影響) === */
+        /* === 3. 主角定位與樣式 === */
         #playerWrapper {
             position: absolute;
-            /* 【修正】將高度降回 45px，完美貼齊草地基準線 */
-            bottom: calc(45px * var(--scale)); 
+            bottom: calc(50px * var(--scale)); 
             left: 50%; 
             transform: translateX(-50%);
             z-index: 10;
@@ -82,7 +84,7 @@
             transition: transform 0.1s; 
         }
 
-        /* === 4. 怪物與子彈樣式 (受 gameScale 影響) === */
+        /* === 4. 怪物與子彈樣式 === */
         .monster {
             position: absolute;
             width: calc(180px * var(--scale));
@@ -154,104 +156,102 @@
             pointer-events: none;
         }
 
-        /* === 6. UI 介面 (固定大小，不受 gameScale 影響) === */
+        /* === 6. UI 介面 (抬頭顯示器 HUD) === */
+        
+        /* 套用 UI 縮放變數與縮放原點，確保放大不會跑版 */
         .hud-hp { 
-            position: absolute; 
-            top: max(20px, env(safe-area-inset-top)); 
-            left: max(20px, env(safe-area-inset-left)); 
-            z-index: 100; 
+            position: absolute; top: calc(20px * var(--scale)); left: calc(20px * var(--scale)); z-index: 100; 
+            transform: scale(var(--user-ui-scale)); transform-origin: top left;
         }
         
         .hud-highest-lv {
-            position: absolute; 
-            top: max(75px, calc(env(safe-area-inset-top) + 55px)); 
-            left: max(20px, env(safe-area-inset-left));
+            position: absolute; top: calc(75px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
-            border: 1px solid rgba(255, 215, 0, 0.4);
-            padding: 5px 12px; 
-            border-radius: 15px;
+            border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
+            padding: calc(5px * var(--scale)) calc(12px * var(--scale)); 
+            border-radius: calc(15px * var(--scale));
             color: #ffd54f; font-weight: bold; 
-            font-size: 14px;
+            font-size: calc(14px * var(--scale));
             z-index: 100; text-shadow: 1px 1px 2px black;
             backdrop-filter: blur(5px);
+            transform: scale(var(--user-ui-scale)); transform-origin: top left;
         }
 
         .hud-exp {
-            position: absolute; 
-            bottom: max(10px, env(safe-area-inset-bottom)); 
-            left: 50%;
-            transform: translateX(-50%); z-index: 100;
+            position: absolute; bottom: calc(5px * var(--scale)); left: 50%;
+            transform: translateX(-50%) scale(var(--user-ui-scale)); 
+            transform-origin: bottom center;
+            z-index: 100;
         }
 
         .stat-box {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: calc(10px * var(--scale));
             background: rgba(0, 0, 0, 0.6); 
-            padding: 8px 15px;
-            border-radius: 25px; border: 2px solid rgba(255, 255, 255, 0.2);
+            padding: calc(8px * var(--scale)) calc(15px * var(--scale));
+            border-radius: calc(25px * var(--scale)); 
+            border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
             color: white; font-weight: bold; backdrop-filter: blur(5px);
         }
-        .stat-label { font-size: 18px; min-width: 45px; text-shadow: 1px 1px 2px black; }
+        .stat-label { font-size: calc(18px * var(--scale)); min-width: calc(45px * var(--scale)); text-shadow: 1px 1px 2px black; }
         .bar-bg {
-            width: max(150px, 25vw); height: 18px;
-            background: rgba(255, 255, 255, 0.2); border-radius: 10px;
-            overflow: hidden; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
+            width: calc(200px * var(--scale)); height: calc(18px * var(--scale));
+            background: rgba(255, 255, 255, 0.2); border-radius: calc(10px * var(--scale));
+            overflow: hidden; box-shadow: inset 0 calc(2px * var(--scale)) calc(5px * var(--scale)) rgba(0,0,0,0.5);
         }
         .bar-fill { height: 100%; transition: width 0.3s ease-out; }
         .hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); width: 100%; }
         .exp-fill { background: linear-gradient(90deg, #fbc02d, #ffeb3b); width: 0%; }
-        .stat-text { font-size: 14px; min-width: 70px; text-align: center; }
+        .stat-text { font-size: calc(14px * var(--scale)); min-width: calc(70px * var(--scale)); text-align: center; }
 
-        /* 遊戲 LOGO 獨立維持響應大小 */
         #gameLogo {
-            position: absolute; 
-            top: -20px; 
-            right: max(-30px, calc(env(safe-area-inset-right) - 50px)); 
-            width: 300px; 
+            position: absolute; top: calc(-20px * var(--scale)); right: calc(-30px * var(--scale)); 
+            width: calc(300px * var(--scale)); 
             z-index: 90; pointer-events: none; 
             animation: logoBreathe 2.5s infinite ease-in-out; 
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.8)); 
+            filter: drop-shadow(0 0 calc(10px * var(--scale)) rgba(0,0,0,0.8)); 
         }
 
         .hint { 
-            position: absolute; top: max(80px, env(safe-area-inset-top)); width: 100%;
+            position: absolute; top: calc(80px * var(--scale)); width: 100%;
             text-align: center; color: rgba(255,255,255,0.4); 
-            font-size: 16px; pointer-events: none; z-index: 100;
+            font-size: calc(16px * var(--scale)); pointer-events: none; z-index: 100;
         }
 
-        /* === 7. 操作按鈕 (固定好按的大小，不受 gameScale 影響) === */
-        
-        /* 確保底部與左右都有安全邊距，不被手機邊緣切斷 */
-        .controls-left { position: absolute; bottom: max(30px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); display: flex; gap: 15px; z-index: 100; }
-        .controls-right { position: absolute; bottom: max(30px, env(safe-area-inset-bottom)); right: max(20px, env(safe-area-inset-right)); display: flex; flex-direction: column-reverse; gap: 15px; z-index: 100; align-items: flex-end; }
-        .controls-top-center { position: absolute; top: max(20px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 100; }
+        /* === 7. 操作按鈕 === */
+        /* 套用 UI 縮放變數與縮放原點 */
+        .controls-left { 
+            position: absolute; bottom: calc(40px * var(--scale)); left: calc(40px * var(--scale)); 
+            display: flex; gap: calc(20px * var(--scale)); z-index: 100; 
+            transform: scale(var(--user-ui-scale)); transform-origin: bottom left;
+        }
+        .controls-right { 
+            position: absolute; bottom: calc(40px * var(--scale)); right: calc(40px * var(--scale)); 
+            display: flex; flex-direction: column-reverse; gap: calc(20px * var(--scale)); z-index: 100; align-items: flex-end; 
+            transform: scale(var(--user-ui-scale)); transform-origin: bottom right;
+        }
+        .controls-top-center { 
+            position: absolute; top: calc(20px * var(--scale)); left: 50%; 
+            transform: translateX(-50%) scale(var(--user-ui-scale)); 
+            transform-origin: top center;
+            display: flex; gap: calc(15px * var(--scale)); z-index: 100; 
+        }
 
         .btn {
-            width: clamp(60px, 12vmin, 80px); 
-            height: clamp(60px, 12vmin, 80px);
+            width: calc(70px * var(--scale)); height: calc(70px * var(--scale));
             background: rgba(255, 255, 255, 0.2); color: white;
-            border: 2px solid rgba(255, 255, 255, 0.5); 
+            border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.5); 
             border-radius: 50%;
-            font-size: clamp(20px, 4vmin, 28px); cursor: pointer; display: flex;
+            font-size: calc(28px * var(--scale)); cursor: pointer; display: flex;
             justify-content: center; align-items: center;
             backdrop-filter: blur(5px); transition: 0.1s;
         }
         .btn:active { background: rgba(255, 255, 255, 0.5); transform: scale(0.9); }
         
-        .btn.jump-btn { 
-            width: clamp(75px, 15vmin, 95px); height: clamp(75px, 15vmin, 95px); 
-            font-size: clamp(18px, 3.5vmin, 22px); font-weight: bold; background: rgba(216, 67, 21, 0.6); border-color: rgba(255, 138, 101, 0.8); 
-        }
+        .btn.jump-btn { width: calc(90px * var(--scale)); height: calc(90px * var(--scale)); font-size: calc(22px * var(--scale)); font-weight: bold; background: rgba(216, 67, 21, 0.6); border-color: rgba(255, 138, 101, 0.8); }
         .btn.jump-btn:active { background: rgba(191, 54, 12, 0.8); }
-        .btn.attack-btn { 
-            width: clamp(65px, 13vmin, 85px); height: clamp(65px, 13vmin, 85px); 
-            font-size: clamp(16px, 3vmin, 20px); font-weight: bold; background: rgba(191, 54, 12, 0.6); border-color: rgba(255, 138, 101, 0.8); 
-        }
+        .btn.attack-btn { width: calc(80px * var(--scale)); height: calc(80px * var(--scale)); font-size: calc(20px * var(--scale)); font-weight: bold; background: rgba(191, 54, 12, 0.6); border-color: rgba(255, 138, 101, 0.8); }
         .btn.attack-btn:active { background: rgba(127, 36, 8, 0.8); }
-        .btn.sys-btn { 
-            width: auto; height: 40px; 
-            padding: 0 15px; font-size: 14px; 
-            border-radius: 20px; font-weight: bold; 
-        }
+        .btn.sys-btn { width: auto; height: calc(40px * var(--scale)); padding: 0 calc(15px * var(--scale)); font-size: calc(14px * var(--scale)); border-radius: calc(20px * var(--scale)); font-weight: bold; }
         .btn.sys-btn.pause-toggle { background: rgba(255, 193, 7, 0.5); border-color: rgba(255, 235, 59, 0.8); }
 
         /* === 8. 遊戲暫停選單 === */
@@ -261,17 +261,18 @@
             z-index: 999; display: flex; justify-content: center; align-items: center;
         }
         .pause-menu {
-            background: rgba(20, 20, 20, 0.8); padding: 40px 60px;
-            border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.2);
-            display: flex; flex-direction: column; gap: 20px; text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            background: rgba(20, 20, 20, 0.8); padding: calc(50px * var(--scale)) calc(80px * var(--scale));
+            border-radius: calc(20px * var(--scale)); border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: calc(25px * var(--scale)); text-align: center;
+            box-shadow: 0 calc(10px * var(--scale)) calc(40px * var(--scale)) rgba(0,0,0,0.8);
         }
-        .pause-menu h2 { color: white; margin: 0 0 15px 0; font-size: 32px; letter-spacing: 5px; text-shadow: 2px 2px 5px black; }
+        .pause-menu h2 { color: white; margin: 0 0 calc(20px * var(--scale)) 0; font-size: calc(40px * var(--scale)); letter-spacing: calc(5px * var(--scale)); text-shadow: 2px 2px 5px black; }
 
         .menu-btn {
             background: rgba(255, 255, 255, 0.8); color: #111; border: none;
-            padding: 15px 30px; font-size: 20px; font-weight: bold;
-            border-radius: 40px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            padding: calc(15px * var(--scale)) calc(40px * var(--scale)); 
+            font-size: calc(22px * var(--scale)); font-weight: bold;
+            border-radius: calc(40px * var(--scale)); cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .menu-btn:hover { background: white; transform: scale(1.05); }
         .menu-btn:active { transform: scale(0.95); }
@@ -287,24 +288,24 @@
             background-size: cover; background-position: center;
         }
         #mainMenuLogo {
-            width: clamp(250px, 60vw, 450px); margin-bottom: 40px;
+            width: calc(450px * var(--scale)); margin-bottom: calc(40px * var(--scale));
             animation: mainLogoBreathe 3s infinite ease-in-out;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
         }
-        .main-btn-group { display: flex; flex-direction: column; gap: 20px; width: clamp(200px, 50vw, 250px); }
+        .main-btn-group { display: flex; flex-direction: column; gap: calc(20px * var(--scale)); width: calc(250px * var(--scale)); }
         
         .blur-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px); z-index: -1;
         }
         .settings-content {
-            background: rgba(20, 20, 20, 0.8); padding: 40px 60px;
-            border-radius: 20px; border: 2px solid rgba(255, 255, 255, 0.2);
-            display: flex; flex-direction: column; gap: 25px; text-align: center; color: white;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            background: rgba(20, 20, 20, 0.8); padding: calc(50px * var(--scale)) calc(80px * var(--scale));
+            border-radius: calc(20px * var(--scale)); border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
+            display: flex; flex-direction: column; gap: calc(25px * var(--scale)); text-align: center; color: white;
+            box-shadow: 0 calc(10px * var(--scale)) calc(40px * var(--scale)) rgba(0,0,0,0.8);
         }
-        .settings-content h2 { margin: 0; font-size: 32px; letter-spacing: 3px; }
-        .settings-item { display: flex; flex-direction: column; gap: 10px; align-items: center; font-size: 20px; font-weight: bold; }
+        .settings-content h2 { margin: 0; font-size: calc(36px * var(--scale)); letter-spacing: calc(3px * var(--scale)); }
+        .settings-item { display: flex; flex-direction: column; gap: calc(10px * var(--scale)); align-items: center; font-size: calc(20px * var(--scale)); font-weight: bold; width: 100%; }
         input[type=range] { width: 100%; cursor: pointer; }
 
         /* === 10. 手機直向螢幕旋轉提示層 === */
@@ -352,7 +353,7 @@
         <img id="mainMenuLogo" src="Game_LOGO.png" alt="Game Logo">
         <div class="main-btn-group">
             <button class="menu-btn" id="startBtn">遊玩遊戲</button>
-            <button class="menu-btn" id="openSettingsBtn">設定</button>
+            <button class="menu-btn" id="openSettingsBtn">系統設定</button>
             <button class="menu-btn danger" id="exitBrowserBtn">回到瀏覽器</button>
         </div>
     </div>
@@ -361,11 +362,18 @@
         <div class="blur-overlay"></div> 
         <div class="settings-content">
             <h2>系統設定</h2>
+            
             <div class="settings-item">
                 <label for="volumeSlider">遊戲音量: <span id="volText">50</span>%</label>
                 <input type="range" id="volumeSlider" min="0" max="100" value="50">
             </div>
-            <button class="menu-btn" id="closeSettingsBtn" style="margin-top: 20px;">返回主頁</button>
+
+            <div class="settings-item">
+                <label for="uiScaleSlider">UI 大小: <span id="uiScaleText">100</span>%</label>
+                <input type="range" id="uiScaleSlider" min="50" max="150" value="100">
+            </div>
+
+            <button class="menu-btn" id="closeSettingsBtn" style="margin-top: 20px;">返回</button>
         </div>
     </div>
 
@@ -412,6 +420,7 @@
         </div>
 
         <div class="controls-top-center">
+            <div class="btn sys-btn" id="gameSettingsBtn">設定</div>
             <div class="btn sys-btn pause-toggle" id="pauseBtn">暫停</div>
             <div class="btn sys-btn" id="fullscreenBtn">全螢幕</div>
         </div>
@@ -428,18 +437,13 @@
 
     <script>
         // === 響應式邏輯與環境偵測 ===
-        
-        // 偵測是否為手機或平板
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // 核心渲染縮放值 (只縮放遊戲世界，不縮放 UI)
         let gameScale = 1;
 
         function fixViewportHeight() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
             
-            // 基礎設計畫面高度設為 800px，計算當前螢幕的等比例縮放值
             gameScale = window.innerHeight / 800;
             document.documentElement.style.setProperty('--scale', gameScale);
 
@@ -449,7 +453,6 @@
         window.addEventListener('orientationchange', fixViewportHeight);
         fixViewportHeight(); 
 
-        // 偵測直立螢幕並強制暫停遊戲
         function checkOrientation() {
             if (!isMobile) return; 
 
@@ -473,20 +476,30 @@
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const gameStage = document.getElementById('gameStage');
         
+        // 遊戲內控制選單按鈕
         const pauseBtn = document.getElementById('pauseBtn');
+        const gameSettingsBtn = document.getElementById('gameSettingsBtn'); 
         const pauseOverlay = document.getElementById('pauseOverlay');
         const resumeBtn = document.getElementById('resumeBtn');
         const restartBtn = document.getElementById('restartBtn');
         const homeBtn = document.getElementById('homeBtn');
 
+        // 主畫面與設定畫面按鈕
         const mainMenu = document.getElementById('mainMenu');
         const settingsMenu = document.getElementById('settingsMenu');
         const startBtn = document.getElementById('startBtn');
         const openSettingsBtn = document.getElementById('openSettingsBtn');
         const exitBrowserBtn = document.getElementById('exitBrowserBtn');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        
+        // 設定選單內的拉桿
         const volumeSlider = document.getElementById('volumeSlider');
         const volText = document.getElementById('volText');
+        const uiScaleSlider = document.getElementById('uiScaleSlider');
+        const uiScaleText = document.getElementById('uiScaleText');
+
+        // 紀錄是從主頁還是從遊戲內打開設定
+        let settingsSource = 'main';
 
         // === 2. 玩家狀態與數值設定 ===
         let playerHP = 100;
@@ -497,6 +510,13 @@
 
         let highestLV = localStorage.getItem('rpg_game_highest_lv');
         highestLV = highestLV ? parseInt(highestLV) : 1;
+
+        // 從本地載入玩家的 UI 縮放比例 (預設 100)
+        let savedUiScale = localStorage.getItem('rpg_game_ui_scale');
+        savedUiScale = savedUiScale ? parseInt(savedUiScale) : 100;
+        uiScaleSlider.value = savedUiScale;
+        uiScaleText.innerText = savedUiScale;
+        document.documentElement.style.setProperty('--user-ui-scale', savedUiScale / 100);
 
         // === 3. 圖片資源與動畫陣列 ===
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
@@ -611,7 +631,6 @@
                 floorTrack.insertBefore(newImg, floorTrack.firstElementChild); 
             }
             
-            // 算好邏輯再套用縮放比例渲染，避免跑版
             floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
         }
 
@@ -666,14 +685,12 @@
                 }
             }
 
-            // 動態螢幕邏輯寬度 (確保縮放後邊界刪除正常運作)
             let screenLogicWidth = gameStage.offsetWidth / gameScale;
 
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
                 
                 if (!monster.hit && !monster.done) {
-                    // 怪物相對移動計算
                     monster.logicX += (BASE_MONSTER_SPEED * monster.dir) - (movingDir * BASE_MOVE_SPEED);
                     monster.el.style.left = `${monster.logicX * gameScale}px`;
                     
@@ -699,7 +716,7 @@
                         monster.doneTimer = 300; 
                         monster.el.className = 'monster monster-vanishing'; 
                         
-                        spawnTemporaryLightEffect(monster.logicX + 90, 65); 
+                        spawnTemporaryLightEffect(monster.logicX + 90, 120); 
                     }
                 }
                 
@@ -766,9 +783,7 @@
             let dir = movingDir === 1 ? -1 : 1; 
 
             img.style.left = `${initialLogicX * gameScale}px`;
-            
-            // 【修正】將怪物高度設定為 55px 基準線，完美貼齊地板
-            img.style.bottom = `calc(55px * var(--scale))`; 
+            img.style.bottom = `calc(90px * var(--scale))`; 
 
             let mirrorValue = (dir === 1) ? -1 : 1;
             img.style.setProperty('--mirror', mirrorValue);
@@ -804,7 +819,7 @@
             }
             
             let spawnLogicX = (gameStage.offsetWidth / gameScale) / 2;
-            let spawnLogicY = 45 + logicCharY + 60; // 對準主角的手部
+            let spawnLogicY = 50 + logicCharY + 80; 
 
             span.style.left = `${spawnLogicX * gameScale}px`;
             span.style.bottom = `${spawnLogicY * gameScale}px`;
@@ -847,21 +862,48 @@
         });
 
         openSettingsBtn.addEventListener('click', () => {
+            settingsSource = 'main'; 
             mainMenu.style.display = 'none';
+            
+            // 【修改點】確保從主畫面進去設定時，背景是主畫面圖片
+            settingsMenu.style.backgroundImage = "url('game_start_background.png')";
             settingsMenu.style.display = 'flex';
+        });
+
+        gameSettingsBtn.addEventListener('click', () => {
+            settingsSource = 'game'; 
+            if (!isPaused) togglePause(); 
+            
+            pauseOverlay.style.display = 'none'; 
+            
+            // 【修改點】移除背景圖片，透出後方的暫停遊戲畫面，並透過 blur-overlay 模糊化
+            settingsMenu.style.backgroundImage = 'none';
+            settingsMenu.style.display = 'flex'; 
+        });
+
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsMenu.style.display = 'none';
+            
+            if (settingsSource === 'main') {
+                mainMenu.style.display = 'flex';
+            } else if (settingsSource === 'game') {
+                pauseOverlay.style.display = 'flex'; 
+            }
         });
 
         exitBrowserBtn.addEventListener('click', () => {
             window.location.href = 'https://www.google.com'; 
         });
 
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsMenu.style.display = 'none';
-            mainMenu.style.display = 'flex';
-        });
-
         volumeSlider.addEventListener('input', (e) => {
             volText.innerText = e.target.value;
+        });
+
+        uiScaleSlider.addEventListener('input', (e) => {
+            let scaleVal = e.target.value;
+            uiScaleText.innerText = scaleVal;
+            document.documentElement.style.setProperty('--user-ui-scale', scaleVal / 100);
+            localStorage.setItem('rpg_game_ui_scale', scaleVal);
         });
 
         function togglePause() {
@@ -928,7 +970,7 @@
         document.getElementById('attackBtn').addEventListener('mousedown', attack);
 
         document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
-        document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
+        document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
         document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
