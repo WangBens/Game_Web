@@ -9,15 +9,12 @@
            CSS 樣式區塊：負責畫面排版、顏色與動畫特效
            ========================================= */
         
-        /* 定義全域縮放變數 */
         :root {
             --scale: 1;
             --vh: 1vh;
-            /* 玩家自定義 UI 縮放比例，預設為 1 (100%) */
             --user-ui-scale: 1;
         }
 
-        /* === 1. 網頁基礎與遊戲舞台 === */
         html, body {
             margin: 0;
             padding: 0;
@@ -27,7 +24,7 @@
             top: 0; 
             left: 0;
             width: 100%;
-            height: 100vh; /* Fallback */
+            height: 100vh; 
             height: calc(var(--vh, 1vh) * 100); 
             overflow: hidden; 
             user-select: none; 
@@ -51,7 +48,6 @@
             animation-play-state: paused !important;
         }
 
-        /* === 2. 地板與背景捲動 === */
         .floor-track {
             position: absolute;
             bottom: 0;
@@ -69,7 +65,6 @@
             flex-shrink: 0; 
         }
 
-        /* === 3. 主角定位與樣式 === */
         #playerWrapper {
             position: absolute;
             bottom: calc(50px * var(--scale)); 
@@ -84,7 +79,6 @@
             transition: transform 0.1s; 
         }
 
-        /* === 4. 怪物與子彈樣式 === */
         .monster {
             position: absolute;
             width: calc(180px * var(--scale));
@@ -105,7 +99,6 @@
             transform-origin: center center;
         }
 
-        /* === 5. 特效相關的 CSS 動畫 === */
         @keyframes monsterShake {
             0% { transform: scaleX(var(--mirror, 1)) translate(1px, 1px) rotate(0deg); }
             10% { transform: scaleX(var(--mirror, 1)) translate(-1px, -2px) rotate(-1deg); }
@@ -142,6 +135,13 @@
             100% { transform: scale(1); }
         }
 
+        /* 主畫面閃爍提示文字 */
+        @keyframes pulseText {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+
         .monster-hit { animation: monsterShake 0.1s infinite; }
         .monster-vanishing { animation: monsterShrinkVanish 0.3s forwards; pointer-events: none; }
         
@@ -156,12 +156,10 @@
             pointer-events: none;
         }
 
-        /* === 【新增】升級彩帶特效的 CSS === */
         .confetti {
             position: absolute;
             z-index: 120;
             pointer-events: none;
-            /* 讓彩帶有一個往上拋然後掉下來的完美拋物線 */
             animation: confettiFall 1s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
@@ -172,7 +170,6 @@
         }
 
         /* === 6. UI 介面 (抬頭顯示器 HUD) === */
-        
         .hud-hp { 
             position: absolute; top: calc(20px * var(--scale)); left: calc(20px * var(--scale)); z-index: 100; 
             transform: scale(var(--user-ui-scale)); transform-origin: top left;
@@ -314,7 +311,7 @@
             animation: mainLogoBreathe 3s infinite ease-in-out;
             filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
         }
-        .main-btn-group { display: flex; flex-direction: column; gap: calc(20px * var(--scale)); width: calc(250px * var(--scale)); }
+        .main-btn-group { display: flex; flex-direction: column; gap: calc(20px * var(--scale)); width: calc(250px * var(--scale)); z-index: 10; }
         
         .blur-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -367,6 +364,15 @@
                 display: flex !important;
             }
         }
+
+        /* 點擊播放音樂的提示文字 */
+        .tap-hint {
+            color: rgba(255,255,255,0.7);
+            font-size: calc(16px * var(--scale));
+            margin-top: calc(20px * var(--scale));
+            animation: pulseText 2s infinite ease-in-out;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -388,6 +394,7 @@
             <button class="menu-btn" id="openSettingsBtn">系統設定</button>
             <button class="menu-btn danger" id="exitBrowserBtn">回到瀏覽器</button>
         </div>
+        <div class="tap-hint" id="bgmHint">(點擊畫面任意處，開啟熱血冒險音樂！)</div>
     </div>
 
     <div id="settingsMenu" class="screen" style="display: none;">
@@ -396,8 +403,8 @@
             <h2>系統設定</h2>
             
             <div class="settings-item">
-                <label for="volumeSlider">遊戲音量: <span id="volText">50</span>%</label>
-                <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                <label for="volumeSlider">遊戲音量 (BGM): <span id="volText">30</span>%</label>
+                <input type="range" id="volumeSlider" min="0" max="100" value="30">
             </div>
 
             <div class="settings-item">
@@ -468,6 +475,7 @@
     </div>
 
     <script>
+        // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let gameScale = 1;
 
@@ -500,6 +508,7 @@
             }
         }
 
+        // === 1. 取得 HTML DOM 元素 ===
         const playerWrapper = document.getElementById('playerWrapper'); 
         const playerImg = document.getElementById('playerImg');         
         const floorTrack = document.getElementById('floorTrack');       
@@ -526,9 +535,11 @@
         const uiScaleText = document.getElementById('uiScaleText');
 
         const menuBgVideo = document.getElementById('menuBgVideo');
+        const bgmHint = document.getElementById('bgmHint');
 
         let settingsSource = 'main';
 
+        // === 2. 玩家狀態與數值設定 ===
         let playerHP = 100;
         let playerMaxHP = 100;
         let playerLV = 1;
@@ -544,6 +555,7 @@
         uiScaleText.innerText = savedUiScale;
         document.documentElement.style.setProperty('--user-ui-scale', savedUiScale / 100);
 
+        // === 3. 圖片資源與動畫陣列 ===
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
         const walkCycle = ['run_1.png', 'run_2.png', 'run_3.png', 'run_4.png', 'run_5.png', 'run_6.png']; 
         const jumpImg = 'run_6.png'; 
@@ -553,6 +565,7 @@
         const harmImg = 'harm_mouse.png'; 
         const attackImg = 'yayun_attack.png'; 
 
+        // === 4. 邏輯常數與變數 ===
         const BASE_MOVE_SPEED = 6;
         const BASE_FLOOR_WIDTH = 800;
         const BASE_JUMP_POWER = 18;
@@ -582,40 +595,137 @@
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
-        // === 【新增】彩帶噴發特效函數 ===
+        // =========================================
+        // 【新增】Web Audio API 音樂合成引擎 (8-bit 冒險曲風)
+        // =========================================
+        let audioCtx = null;
+        let masterGain = null;
+        let isBgmPlaying = false;
+        let nextNoteTime = 0;
+        let currentNote = 0;
+        let timerID;
+
+        // 節拍設定 (BPM = 150)
+        const bpm = 150;
+        const noteLength = (60 / bpm) / 2; // 八分音符長度(秒)
+
+        // 8-bit 主旋律 (MIDI 數字表示音高，0 代表休止符)
+        // 這是個熱血的 4 和弦冒險進行曲 (Am -> F -> C -> G)
+        const bgmMelody = [
+            76, 0, 81, 0, 84, 0, 83, 81, // Am
+            81, 0, 77, 0, 81, 0, 79, 77, // F
+            79, 0, 76, 0, 79, 0, 77, 76, // C
+            74, 0, 71, 0, 74, 0, 76, 0   // G
+        ];
+        
+        // 8-bit 貝斯底盤 (跳躍的根音與八度音)
+        const bgmBass = [
+            45, 45, 57, 45, 45, 45, 57, 45, // Am
+            41, 41, 53, 41, 41, 41, 53, 41, // F
+            48, 48, 60, 48, 48, 48, 60, 48, // C
+            43, 43, 55, 43, 43, 43, 55, 43  // G
+        ];
+
+        // 初始化音樂系統 (必須由玩家點擊觸發)
+        function initAudio() {
+            if (audioCtx) return; 
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            
+            // 同步目前的音量拉桿數值
+            let currentVol = parseInt(volumeSlider.value) / 100;
+            masterGain.gain.value = currentVol * 0.3; // 乘 0.3 避免波形破音
+            masterGain.connect(audioCtx.destination);
+            
+            isBgmPlaying = true;
+            bgmHint.style.display = 'none'; // 隱藏提示文字
+            nextNoteTime = audioCtx.currentTime + 0.1;
+            scheduleAudio();
+        }
+
+        // 發聲產生器 (用方波與鋸齒波產生復古感)
+        function playTone(midiNote, time, type, duration, volScale) {
+            if (midiNote === 0 || !audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = type; // 'square' 適合主旋律, 'sawtooth' 適合貝斯
+            osc.frequency.value = 440 * Math.pow(2, (midiNote - 69) / 12);
+            
+            osc.connect(gain);
+            gain.connect(masterGain);
+            
+            // 包絡線 (ADSR) 避免聲音出現「波波」的雜音
+            gain.gain.setValueAtTime(0, time);
+            gain.gain.linearRampToValueAtTime(volScale, time + 0.01);
+            gain.gain.setValueAtTime(volScale, time + duration - 0.03);
+            gain.gain.linearRampToValueAtTime(0, time + duration);
+            
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        // 排程器 (精準計算下一個音符的時間)
+        function scheduleAudio() {
+            if (!isBgmPlaying) return;
+            
+            // 每次預先排程 0.1 秒內的音符
+            while (nextNoteTime < audioCtx.currentTime + 0.1) {
+                // 播放主旋律 (方波)
+                if (bgmMelody[currentNote]) {
+                    playTone(bgmMelody[currentNote], nextNoteTime, 'square', noteLength * 0.8, 0.4);
+                }
+                
+                // 播放貝斯 (鋸齒波)
+                if (bgmBass[currentNote]) {
+                    playTone(bgmBass[currentNote], nextNoteTime, 'sawtooth', noteLength * 0.9, 0.5);
+                }
+                
+                nextNoteTime += noteLength;
+                currentNote = (currentNote + 1) % bgmMelody.length; // 循環播放
+            }
+            
+            // 利用 requestAnimationFrame 進行高頻率刷新
+            timerID = requestAnimationFrame(scheduleAudio);
+        }
+
+        // 全域點擊監聽：解鎖瀏覽器 Audio 限制
+        document.body.addEventListener('pointerdown', () => {
+            if (!audioCtx) initAudio();
+        }, { once: true });
+
+
+        // === 5. 遊戲核心函數 ===
+
         function fireConfetti(amount) {
             const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
-            const shapes = ['50%', '0%']; // 50%為圓形，0%為方形
+            const shapes = ['50%', '0%']; 
 
             for (let i = 0; i < amount; i++) {
                 let conf = document.createElement('div');
                 conf.className = 'confetti';
                 
-                // 隨機大小
                 let size = Math.random() * 6 + 6; 
                 conf.style.width = `${size}px`;
                 conf.style.height = `${size * (Math.random() > 0.5 ? 1 : 1.5)}px`; 
                 conf.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)];
                 conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                 
-                // 起始位置在主角身上中心點附近隨機散佈
                 conf.style.left = `calc(50% + ${Math.random() * 20 - 10}px)`;
                 conf.style.bottom = `80px`; 
 
-                // 物理計算：決定噴發的拋物線落點
-                let angle = (Math.random() * 140 + 200) * Math.PI / 180; // 向上噴發的角度
-                let dist = Math.random() * 120 + 80; // 噴發距離
+                let angle = (Math.random() * 140 + 200) * Math.PI / 180; 
+                let dist = Math.random() * 120 + 80; 
                 let tx = Math.cos(angle) * dist;
-                let ty = Math.sin(angle) * dist; // ty 是負值(往上)
+                let ty = Math.sin(angle) * dist; 
 
                 conf.style.setProperty('--tx', `${tx}px`);
                 conf.style.setProperty('--ty', `${ty}px`);
-                let rot = Math.random() * 720 - 360; // 隨機旋轉
+                let rot = Math.random() * 720 - 360; 
                 conf.style.setProperty('--rot', `${rot}deg`);
 
                 playerWrapper.appendChild(conf);
 
-                // 動畫結束後自動清理 (對應 css 動畫 1 秒)
                 setTimeout(() => {
                     if (conf.parentNode) conf.parentNode.removeChild(conf);
                 }, 1000);
@@ -649,13 +759,10 @@
                 }
             }
 
-            // 【新增】如果升級，觸發特效與震動
             if (leveledUp) {
-                // 判斷是否為 5 的倍數，如果是就噴 100 片，否則 30 片
                 let confettiAmount = (playerLV % 5 === 0) ? 100 : 30;
                 fireConfetti(confettiAmount);
 
-                // 手機震動 (慶祝模式：短-短-長)
                 if (isMobile && navigator.vibrate) {
                     navigator.vibrate([50, 50, 100]); 
                 }
@@ -969,8 +1076,14 @@
             window.location.href = 'https://www.google.com'; 
         });
 
+        // 音量拉桿控制 BGM
         volumeSlider.addEventListener('input', (e) => {
-            volText.innerText = e.target.value;
+            let val = e.target.value;
+            volText.innerText = val;
+            if (masterGain) {
+                // 音量上限設為 0.3 避免破音
+                masterGain.gain.value = (val / 100) * 0.3;
+            }
         });
 
         uiScaleSlider.addEventListener('input', (e) => {
