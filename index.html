@@ -280,13 +280,25 @@
         .menu-btn.danger:hover { background: rgba(244, 67, 54, 1); }
 
         /* === 9. 主畫面與設定畫面樣式 === */
+        
+        /* 【新增】全域背景動畫樣式 */
+        #menuBgVideo {
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            z-index: 1500; /* 放於畫面底層，但高於遊戲層 */
+        }
+
         .screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             z-index: 2000; 
-            background-image: url('game_start_background.png');
-            background-size: cover; background-position: center;
+            /* 移除舊版圖片背景，改由底下的 video 提供動態背景 */
         }
+
         #mainMenuLogo {
             width: calc(450px * var(--scale)); margin-bottom: calc(40px * var(--scale));
             animation: mainLogoBreathe 3s infinite ease-in-out;
@@ -339,6 +351,12 @@
             50% { transform: rotate(90deg); }
             100% { transform: rotate(90deg); }
         }
+
+        @media screen and (orientation: portrait) {
+            #orientationOverlay {
+                display: flex !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -348,6 +366,10 @@
         <h1>請旋轉手機</h1>
         <p>為了獲得最佳遊戲體驗，<br>請將您的設備旋轉至<b>橫向 (Landscape)</b> 遊玩。</p>
     </div>
+
+    <video id="menuBgVideo" autoplay loop muted playsinline>
+        <source src="Game_start_movie_sunny.mp4" type="video/mp4">
+    </video>
 
     <div id="mainMenu" class="screen">
         <img id="mainMenuLogo" src="Game_LOGO.png" alt="Game Logo">
@@ -476,7 +498,6 @@
         const fullscreenBtn = document.getElementById('fullscreenBtn');
         const gameStage = document.getElementById('gameStage');
         
-        // 遊戲內控制選單按鈕
         const pauseBtn = document.getElementById('pauseBtn');
         const gameSettingsBtn = document.getElementById('gameSettingsBtn'); 
         const pauseOverlay = document.getElementById('pauseOverlay');
@@ -484,7 +505,6 @@
         const restartBtn = document.getElementById('restartBtn');
         const homeBtn = document.getElementById('homeBtn');
 
-        // 主畫面與設定畫面按鈕
         const mainMenu = document.getElementById('mainMenu');
         const settingsMenu = document.getElementById('settingsMenu');
         const startBtn = document.getElementById('startBtn');
@@ -492,11 +512,13 @@
         const exitBrowserBtn = document.getElementById('exitBrowserBtn');
         const closeSettingsBtn = document.getElementById('closeSettingsBtn');
         
-        // 設定選單內的拉桿
         const volumeSlider = document.getElementById('volumeSlider');
         const volText = document.getElementById('volText');
         const uiScaleSlider = document.getElementById('uiScaleSlider');
         const uiScaleText = document.getElementById('uiScaleText');
+
+        // 取得背景影片 DOM
+        const menuBgVideo = document.getElementById('menuBgVideo');
 
         // 紀錄是從主頁還是從遊戲內打開設定
         let settingsSource = 'main';
@@ -511,7 +533,6 @@
         let highestLV = localStorage.getItem('rpg_game_highest_lv');
         highestLV = highestLV ? parseInt(highestLV) : 1;
 
-        // 從本地載入玩家的 UI 縮放比例 (預設 100)
         let savedUiScale = localStorage.getItem('rpg_game_ui_scale');
         savedUiScale = savedUiScale ? parseInt(savedUiScale) : 100;
         uiScaleSlider.value = savedUiScale;
@@ -855,6 +876,7 @@
 
         startBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
+            menuBgVideo.style.display = 'none'; // 隱藏影片，顯示遊戲畫面
             gameStage.style.display = 'block';
             pauseOverlay.style.display = 'none'; 
             isPaused = false; 
@@ -864,20 +886,15 @@
         openSettingsBtn.addEventListener('click', () => {
             settingsSource = 'main'; 
             mainMenu.style.display = 'none';
-            
-            // 【修改點】確保從主畫面進去設定時，背景是主畫面圖片
-            settingsMenu.style.backgroundImage = "url('game_start_background.png')";
+            // 主畫面進入，影片保持顯示
             settingsMenu.style.display = 'flex';
         });
 
         gameSettingsBtn.addEventListener('click', () => {
             settingsSource = 'game'; 
             if (!isPaused) togglePause(); 
-            
             pauseOverlay.style.display = 'none'; 
-            
-            // 【修改點】移除背景圖片，透出後方的暫停遊戲畫面，並透過 blur-overlay 模糊化
-            settingsMenu.style.backgroundImage = 'none';
+            // 從遊戲內進入，影片已經隱藏，只顯示選單(毛玻璃會模糊下方的遊戲畫面)
             settingsMenu.style.display = 'flex'; 
         });
 
@@ -946,6 +963,7 @@
         homeBtn.addEventListener('click', () => {
             gameStage.style.display = 'none';
             mainMenu.style.display = 'flex';
+            menuBgVideo.style.display = 'block'; // 重新顯示動畫背景
             
             restartGame(); 
             isPaused = true;
@@ -970,7 +988,7 @@
         document.getElementById('attackBtn').addEventListener('mousedown', attack);
 
         document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
-        document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
+        document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
         document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
         document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
