@@ -395,9 +395,7 @@
         <p>為了獲得最佳遊戲體驗，<br>請將您的設備旋轉至<b>橫向 (Landscape)</b> 遊玩。</p>
     </div>
 
-    <video id="menuBgVideo" autoplay loop muted playsinline>
-        <source src="Game_start_movie_sunny.mp4" type="video/mp4">
-    </video>
+    <video id="menuBgVideo" autoplay muted playsinline></video>
 
     <div id="mainMenu" class="screen">
         <img id="mainMenuLogo" src="Game_LOGO.png" alt="Game Logo">
@@ -495,6 +493,46 @@
     </div>
 
     <script>
+        // === 主選單影片與背景控制邏輯 ===
+        const bgVideos = [
+            { src: 'Game_start_movie_sunny.mp4', theme: 'sunny' },
+            { src: 'Game_start_background_RedForest.mp4', theme: 'forest' }
+        ];
+        
+        // 隨機選定初始場景
+        let currentBgIndex = Math.floor(Math.random() * bgVideos.length);
+        const menuBgVideo = document.getElementById('menuBgVideo');
+        menuBgVideo.src = bgVideos[currentBgIndex].src;
+        let currentMenuTheme = bgVideos[currentBgIndex].theme; 
+
+        // 標記是否需要切換影片
+        let shouldSwitchVideo = false;
+
+        // 每 24 秒標記要求切換影片
+        setInterval(() => {
+            shouldSwitchVideo = true;
+        }, 24000);
+
+        // 利用影片的 ended 事件，手動控制循環與切換，確保「播完才換」
+        menuBgVideo.addEventListener('ended', () => {
+            if (shouldSwitchVideo) {
+                // 收到切換請求，執行場景切換
+                shouldSwitchVideo = false;
+                currentBgIndex = (currentBgIndex + 1) % bgVideos.length;
+                let nextBg = bgVideos[currentBgIndex];
+                menuBgVideo.src = nextBg.src;
+                currentMenuTheme = nextBg.theme;
+                
+                // 如果目前不在遊戲中 (例如在主選單或設定)，則立即切換 BGM
+                const gameStage = document.getElementById('gameStage');
+                if (gameStage.style.display !== 'block') {
+                    setBGM(currentMenuTheme);
+                }
+            }
+            // 手動觸發重播，達成無縫循環或播放新影片
+            menuBgVideo.play().catch(err => console.log('影片播放被阻擋:', err));
+        });
+
         // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let gameScale = 1;
@@ -563,7 +601,6 @@
         const uiScaleSlider = document.getElementById('uiScaleSlider');
         const uiScaleText = document.getElementById('uiScaleText');
 
-        const menuBgVideo = document.getElementById('menuBgVideo');
         const bgmHint = document.getElementById('bgmHint');
 
         let settingsSource = 'main';
@@ -629,14 +666,14 @@
 
         let monsterSpawnTimer = 1500; 
         
-        // 擊殺掉落機制變數 7~10
+        // 擊殺掉落機制變數
         let killCount = 0;
         let nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7; 
 
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
-        // 音樂系統
+        // === 全新動態 BGM 系統 ===
         let audioCtx = null;
         let masterGain = null;
         let isBgmPlaying = false;
@@ -645,11 +682,50 @@
         let timerID;
         let isAudioUnlocked = false;
 
-        const bpm = 150;
-        const noteLength = (60 / bpm) / 2; 
+        // 音樂譜面定義
+        const sunnyMelody = [76, 0, 81, 0, 84, 0, 83, 81, 81, 0, 77, 0, 81, 0, 79, 77, 79, 0, 76, 0, 79, 0, 77, 76, 74, 0, 71, 0, 74, 0, 76, 0];
+        const sunnyBass = [45, 45, 57, 45, 45, 45, 57, 45, 41, 41, 53, 41, 41, 41, 53, 41, 48, 48, 60, 48, 48, 48, 60, 48, 43, 43, 55, 43, 43, 43, 55, 43];
 
-        const bgmMelody = [ 76, 0, 81, 0, 84, 0, 83, 81, 81, 0, 77, 0, 81, 0, 79, 77, 79, 0, 76, 0, 79, 0, 77, 76, 74, 0, 71, 0, 74, 0, 76, 0 ];
-        const bgmBass = [ 45, 45, 57, 45, 45, 45, 57, 45, 41, 41, 53, 41, 41, 41, 53, 41, 48, 48, 60, 48, 48, 48, 60, 48, 43, 43, 55, 43, 43, 43, 55, 43 ];
+        const forestMelody = [72, 0, 75, 0, 71, 0, 74, 0, 69, 0, 72, 0, 68, 0, 71, 0];
+        const forestBass = [48, 0, 0, 0, 47, 0, 0, 0, 45, 0, 0, 0, 44, 0, 0, 0];
+
+        const battleMelody = [76, 76, 79, 76, 81, 76, 83, 84, 76, 76, 79, 76, 84, 83, 81, 79];
+        const battleBass = [40, 40, 40, 40, 40, 40, 40, 40, 43, 43, 43, 43, 45, 45, 46, 46];
+
+        let currentMelody = [];
+        let currentBass = [];
+        let currentBPM = 100;
+        let melodyWave = 'square';
+        let bassWave = 'sawtooth';
+        let noteLength = 0;
+
+        // BGM 統一切換函數
+        function setBGM(theme) {
+            currentNote = 0; 
+            if (theme === 'sunny') {
+                currentMelody = sunnyMelody;
+                currentBass = sunnyBass;
+                currentBPM = 150; 
+                melodyWave = 'square';
+                bassWave = 'sawtooth';
+            } else if (theme === 'forest') {
+                currentMelody = forestMelody;
+                currentBass = forestBass;
+                currentBPM = 90; // 緩慢、幽靈感
+                melodyWave = 'sine'; // 圓滑陰森的音色
+                bassWave = 'triangle';
+            } else if (theme === 'battle') {
+                currentMelody = battleMelody;
+                currentBass = battleBass;
+                currentBPM = 180; // 刺激、節奏快
+                melodyWave = 'square'; 
+                bassWave = 'sawtooth';
+            }
+            noteLength = (60 / currentBPM) / 2;
+        }
+
+        // 初始化載入當下場景對應的音樂
+        setBGM(currentMenuTheme);
 
         const unlockAudio = () => {
             if (isAudioUnlocked) return;
@@ -706,10 +782,10 @@
         function scheduleAudio() {
             if (!isBgmPlaying) return;
             while (nextNoteTime < audioCtx.currentTime + 0.1) {
-                if (bgmMelody[currentNote]) playTone(bgmMelody[currentNote], nextNoteTime, 'square', noteLength * 0.8, 0.4);
-                if (bgmBass[currentNote]) playTone(bgmBass[currentNote], nextNoteTime, 'sawtooth', noteLength * 0.9, 0.5);
+                if (currentMelody[currentNote]) playTone(currentMelody[currentNote], nextNoteTime, melodyWave, noteLength * 0.8, 0.4);
+                if (currentBass[currentNote]) playTone(currentBass[currentNote], nextNoteTime, bassWave, noteLength * 0.9, 0.5);
                 nextNoteTime += noteLength;
-                currentNote = (currentNote + 1) % bgmMelody.length; 
+                currentNote = (currentNote + 1) % currentMelody.length; 
             }
             timerID = requestAnimationFrame(scheduleAudio);
         }
@@ -810,7 +886,6 @@
 
             // GAME OVER 判定
             if (playerHP <= 0) {
-                // 給予 0.5 秒緩衝，讓擊退動畫播完再叫出選單
                 setTimeout(() => {
                     isPaused = true;
                     gameOverOverlay.style.display = 'flex';
@@ -883,7 +958,6 @@
         }
 
         function updatePhysics() {
-            // 處理跳躍
             if (isJumping) {
                 logicCharY += logicVelocityY; 
                 logicVelocityY -= BASE_GRAVITY; 
@@ -895,7 +969,6 @@
                 }
             }
 
-            // 處理受傷擊退與濾鏡
             let knockbackPixelOffset = 0;
             if (playerIsHurt) {
                 playerHurtTimer -= 20;
@@ -911,7 +984,6 @@
                 playerImg.style.filter = 'none';
             }
 
-            // 同時套用跳躍與擊退位移
             playerWrapper.style.transform = `translate(calc(-50% + ${knockbackPixelOffset * gameScale}px), -${logicCharY * gameScale}px)`;
         }
 
@@ -955,7 +1027,7 @@
                 }
             }
 
-            // --- 護盾更新與碰撞判定 (邊緣碰撞 AABB) ---
+            // --- 護盾碰撞 ---
             for (let i = shields.length - 1; i >= 0; i--) {
                 let shield = shields[i];
                 if (movingDir !== 0) {
@@ -986,14 +1058,12 @@
                 }
             }
 
-            // --- 怪物更新與碰撞判定 ---
+            // --- 怪物碰撞與攻擊 ---
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
                 
                 if (!monster.hit && !monster.done) {
-                    
                     if (monster.attacking) {
-                        // 怪物正在進行咬人動畫
                         monster.attackTimer += 20;
                         if (monster.attackTimer >= 100) { 
                             monster.attackTimer = 0;
@@ -1001,7 +1071,6 @@
                             if (monster.attackFrame < monsterAttackCycle.length) {
                                 monster.el.src = monsterAttackCycle[monster.attackFrame];
                             } else {
-                                // 動畫播完一輪，結束攻擊判定傷害
                                 monster.attacking = false;
                                 monster.el.src = monsterWalkCycle[monster.frame];
                                 
@@ -1017,7 +1086,6 @@
                         }
 
                     } else {
-                        // 怪物追擊移動
                         monster.logicX += (BASE_MONSTER_SPEED * monster.dir) - (movingDir * BASE_MOVE_SPEED);
                         monster.el.style.left = `${monster.logicX * gameScale}px`;
                         
@@ -1028,8 +1096,6 @@
                             monster.animTimer = 0;
                         }
                         
-                        // 【改用 AABB 邊緣碰撞偵測】
-                        // 一旦兩者的圖片邊界重疊，怪物立刻開始攻擊
                         let monsterRect = monster.el.getBoundingClientRect(); 
                         if (
                             playerRect.x < monsterRect.x + monsterRect.width &&
@@ -1072,7 +1138,7 @@
                 }
             }
 
-            // --- 飛行物 (火球攻擊) 更新 ---
+            // --- 飛行物更新 ---
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let projectile = projectiles[i];
                 projectile.logicX += BASE_PROJECTILE_SPEED * projectile.dir;
@@ -1102,7 +1168,6 @@
                         
                         gainEXP(1); 
                         
-                        // 擊殺掉落護盾判定 (7~10 隻)
                         killCount++;
                         if (killCount >= nextShieldKillThreshold) {
                             killCount = 0;
@@ -1221,6 +1286,9 @@
             gameStage.style.display = 'block';
             pauseOverlay.style.display = 'none'; 
             isPaused = false; 
+            
+            setBGM('battle'); // 進入遊戲切換戰鬥音樂
+            
             checkOrientation(); 
             if(isMobile) toggleFullScreen();
         });
@@ -1264,7 +1332,6 @@
         });
 
         function togglePause() {
-            // 如果玩家死亡不允許自行切換暫停
             if (playerHP <= 0) return; 
 
             isPaused = !isPaused;
@@ -1315,7 +1382,6 @@
             playerImg.src = standImg;
             playerWrapper.style.transform = `translate(-50%, 0px)`;
             
-            // 強制解除暫停狀態以確保下一場遊戲正常運作
             isPaused = false; 
             pauseOverlay.style.display = 'none'; 
             gameStage.classList.remove('paused-anim');
@@ -1326,18 +1392,22 @@
             mainMenu.style.display = 'flex';
             menuBgVideo.style.display = 'block'; 
             
+            setBGM(currentMenuTheme); // 回到首頁切換回場景音樂
+            
             restartGame(); 
             isPaused = true; 
         });
 
-        // 綁定 GAME OVER 畫面的繼續按鈕
         gameOverContinueBtn.addEventListener('click', () => {
             gameOverOverlay.style.display = 'none';
             gameStage.style.display = 'none';
             mainMenu.style.display = 'flex';
             menuBgVideo.style.display = 'block'; 
+            
+            setBGM(currentMenuTheme); // 回到首頁切換回場景音樂
+            
             restartGame(); 
-            isPaused = true; // 在主選單維持背景停止
+            isPaused = true; 
         });
 
         // === 事件監聽綁定區 ===
