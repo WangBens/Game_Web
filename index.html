@@ -33,7 +33,6 @@
             touch-action: none; 
         }
 
-        /* 遊戲主舞台：新增像素風格的漸層藍天 */
         .stage {
             position: absolute; 
             top: 0; 
@@ -54,10 +53,9 @@
             animation-play-state: paused !important;
         }
 
-        /* 雲朵樣式 */
         .cloud {
             position: absolute;
-            z-index: 2; /* 放在角色和背景之間 */
+            z-index: 2; 
             image-rendering: pixelated;
             opacity: 0.9;
             pointer-events: none;
@@ -117,7 +115,7 @@
 
         .shield-item {
             position: absolute;
-            width: calc(50px * var(--scale));
+            width: calc(75px * var(--scale));
             image-rendering: pixelated;
             z-index: 6;
             animation: itemDrop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
@@ -217,7 +215,6 @@
         }
         
         .hud-highest-lv {
-            /* 調整最高紀錄的位置往下，避免與護盾條重疊 */
             position: absolute; top: calc(160px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
             border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
@@ -457,7 +454,9 @@
                 <span class="stat-text" id="hpText">100 / 100</span>
             </div>
             <div class="stat-box">
-                <span class="stat-label" style="color: #bdbdbd;">🛡️</span>
+                <span class="stat-label" style="display: flex; align-items: center; justify-content: center;">
+                    <img src="game_shield.png" style="height: calc(24px * var(--scale)); image-rendering: pixelated;" alt="Shield">
+                </span>
                 <div class="bar-bg"><div class="bar-fill shield-fill" id="shieldBar"></div></div>
                 <span class="stat-text" id="shieldText">0 / 50</span>
             </div>
@@ -523,12 +522,10 @@
 
         let shouldSwitchVideo = false;
 
-        // 每 24 秒標記要求切換影片
         setInterval(() => {
             shouldSwitchVideo = true;
         }, 24000);
 
-        // 影片結束時，若標記亮起則切換場景與音樂
         menuBgVideo.addEventListener('ended', () => {
             if (shouldSwitchVideo) {
                 shouldSwitchVideo = false;
@@ -537,7 +534,6 @@
                 menuBgVideo.src = nextBg.src;
                 currentMenuTheme = nextBg.theme;
                 
-                // 只有不在遊玩中才切換音樂
                 if (gameStage.style.display !== 'block') {
                     setBGM(currentMenuTheme);
                 }
@@ -675,13 +671,13 @@
         let monsters = [];    
         let projectiles = []; 
         let shields = []; 
-        let clouds = []; // 雲朵陣列
+        let clouds = []; 
 
         let monsterSpawnTimer = 1500; 
-        let cloudSpawnTimer = 0; // 雲朵生成計時器
+        let cloudSpawnTimer = 0; 
         
         let killCount = 0;
-        const SHIELD_KILL_THRESHOLD = 3; // 改為每 3 隻固定判定
+        const SHIELD_KILL_THRESHOLD = 3; 
 
         const keys = { left: false, right: false }; 
         let isPaused = true; 
@@ -731,7 +727,6 @@
                 noteLength = (60 / currentBPM) / 2;
             };
 
-            // 如果音樂引擎尚未啟動，直接切換設定即可
             if (!audioCtx || !masterGain) {
                 applyThemeSettings();
                 return;
@@ -739,12 +734,10 @@
 
             let targetVol = (parseInt(volumeSlider.value) / 100) * 0.3;
 
-            // 淡出音樂 (1秒)
             masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
             masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
             masterGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
 
-            // 1秒後切換樂譜，並開始淡入
             setTimeout(() => {
                 applyThemeSettings();
                 masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
@@ -881,25 +874,53 @@
             updateHUD();
         }
 
+        // 主角受傷計算與特效 (結合護盾折抵與四捨五入運算)
         function takeDamage(amount, knockbackDir) {
             if (playerIsHurt || playerHP <= 0) return; 
 
+            let shieldDamageTaken = 0;
+            let hpDamageTaken = 0;
+            // 護盾折抵，計算後直接四捨五入
+            let shieldNeeded = Math.round(amount * 0.8);
+
             if (playerShield > 0) {
-                if (playerShield >= amount) {
-                    playerShield -= amount;
+                if (playerShield >= shieldNeeded) {
+                    shieldDamageTaken = shieldNeeded;
+                    playerShield -= shieldNeeded;
                 } else {
-                    let remainder = amount - playerShield;
+                    shieldDamageTaken = playerShield;
+                    let remainingShieldNeeded = shieldNeeded - playerShield;
+                    // 破盾後的溢出傷害乘以 1.25，計算後直接四捨五入
+                    hpDamageTaken = Math.round(remainingShieldNeeded * 1.25);
                     playerShield = 0;
-                    playerHP -= remainder;
+                    playerHP -= hpDamageTaken;
                 }
             } else {
-                playerHP -= amount;
+                hpDamageTaken = amount;
+                playerHP -= hpDamageTaken;
             }
+
+            // 確保數值絕對沒有小數點
+            playerHP = Math.round(playerHP);
+            playerShield = Math.round(playerShield);
 
             if (playerHP < 0) playerHP = 0;
             updateHUD();
 
-            spawnDamageText((gameStage.offsetWidth / gameScale) / 2, logicCharY + 100, amount);
+            let textLogicX = (gameStage.offsetWidth / gameScale) / 2;
+            let textLogicY = logicCharY + 100;
+
+            // 顯示四捨五入後的傷害數字
+            if (shieldDamageTaken > 0 && hpDamageTaken > 0) {
+                spawnDamageText(textLogicX, textLogicY + 40, shieldDamageTaken, '#9e9e9e'); 
+                setTimeout(() => {
+                    spawnDamageText(textLogicX, textLogicY, hpDamageTaken, '#ff5252'); 
+                }, 100);
+            } else if (shieldDamageTaken > 0) {
+                spawnDamageText(textLogicX, textLogicY, shieldDamageTaken, '#9e9e9e');
+            } else if (hpDamageTaken > 0) {
+                spawnDamageText(textLogicX, textLogicY, hpDamageTaken, '#ff5252');
+            }
 
             playerIsHurt = true;
             playerHurtTimer = 300; 
@@ -918,11 +939,11 @@
             }
         }
 
-        function spawnDamageText(logicX, logicY, amount) {
+        function spawnDamageText(logicX, logicY, amount, color) {
             let span = document.createElement('div');
             span.innerText = `-${amount}`;
             span.style.position = 'absolute';
-            span.style.color = '#ff5252';
+            span.style.color = color || '#ff5252';
             span.style.fontWeight = 'bold';
             span.style.fontSize = `calc(35px * var(--scale))`;
             span.style.textShadow = '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000';
@@ -954,7 +975,7 @@
             updatePhysics();  
             updateFloor();    
             updateEntities(); 
-            updateClouds();   // 更新雲朵位置與生成
+            updateClouds();   
             updateAnimation();
         }
 
@@ -983,31 +1004,26 @@
             floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
         }
 
-        // --- 雲朵控制邏輯 (視差效果) ---
         function updateClouds() {
             let screenLogicWidth = gameStage.offsetWidth / gameScale;
 
             cloudSpawnTimer -= 20;
             if (cloudSpawnTimer <= 0) {
-                // 決定雲朵從哪邊生出來
                 let spawnX = movingDir === -1 ? -300 : screenLogicWidth + 300;
                 spawnCloud(spawnX);
-                cloudSpawnTimer = Math.random() * 3000 + 2000; // 2000 ~ 5000ms
+                cloudSpawnTimer = Math.random() * 3000 + 2000; 
             }
 
             for (let i = clouds.length - 1; i >= 0; i--) {
                 let c = clouds[i];
                 
-                // 視差移動：雲朵移動速度只有地板的 30%
                 if (movingDir !== 0) {
-                    c.logicX -= movingDir * BASE_MOVE_SPEED * 0.3; 
+                    c.logicX -= movingDir * BASE_MOVE_SPEED * 0.1; 
                 }
-                // 加入一點點自然風吹的微小漂移，即使不走動雲也會輕輕飄
-                c.logicX -= 0.5;
+                c.logicX -= 0.1;
 
                 c.el.style.left = `${c.logicX * gameScale}px`;
 
-                // 超出邊界回收
                 if (c.logicX < -600 || c.logicX > screenLogicWidth + 600) {
                     if (c.el.parentNode) gameStage.removeChild(c.el);
                     clouds.splice(i, 1);
@@ -1023,9 +1039,8 @@
             let screenLogicWidth = gameStage.offsetWidth / gameScale;
             let spawnX = startX !== undefined ? startX : screenLogicWidth + 300;
             
-            // 雲朵高度生成在畫面偏上方的位置
             let spawnY = Math.random() * 300 + 250; 
-            let scale = Math.random() * 0.6 + 0.4; // 0.4x ~ 1.0x
+            let scale = Math.random() * 0.6 + 0.4; 
 
             img.style.left = `${spawnX * gameScale}px`;
             img.style.bottom = `${spawnY * gameScale}px`;
@@ -1152,7 +1167,7 @@
                                 
                                 let pCenter = playerRect.x + playerRect.width / 2;
                                 let mCenter = monster.el.getBoundingClientRect().x + monster.el.getBoundingClientRect().width / 2;
-                                takeDamage(6, pCenter < mCenter ? -1 : 1);
+                                takeDamage(6, pCenter < mCenter ? -1 : 1); 
                             }
                         }
                         
@@ -1243,7 +1258,6 @@
                         
                         gainEXP(1); 
                         
-                        // 擊殺掉落機制改為「每固定 3 隻」
                         killCount++;
                         if (killCount >= SHIELD_KILL_THRESHOLD) {
                             killCount = 0;
@@ -1397,7 +1411,6 @@
             let val = e.target.value;
             volText.innerText = val;
             if (masterGain) {
-                // 滑動音量條時，手動重置淡入淡出數值
                 masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
                 masterGain.gain.setValueAtTime((val / 100) * 0.3, audioCtx.currentTime);
             }
@@ -1450,7 +1463,6 @@
             projectiles.forEach(p => { if (p.el.parentNode) gameStage.removeChild(p.el); });
             projectiles = [];
             
-            // 清除並在開始時生成一些初始的背景雲朵
             clouds.forEach(c => { if (c.el.parentNode) gameStage.removeChild(c.el); });
             clouds = [];
             let screenWidth = gameStage.offsetWidth / gameScale;
@@ -1549,7 +1561,6 @@
             }
         });
 
-        // 初始載入時手動重置一次雲朵避免畫面太空
         let screenWidth = window.innerWidth / gameScale;
         for(let i=0; i<3; i++) {
             spawnCloud(Math.random() * screenWidth);
