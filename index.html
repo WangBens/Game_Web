@@ -69,14 +69,14 @@
             position: absolute;
             bottom: calc(50px * var(--scale)); 
             left: 50%; 
-            transform: translateX(-50%);
+            transform: translate(-50%, 0);
             z-index: 10;
         }
 
         #playerImg {
             width: calc(150px * var(--scale));
             image-rendering: pixelated; 
-            transition: transform 0.1s; 
+            transition: filter 0.1s; 
         }
 
         .monster {
@@ -97,6 +97,31 @@
             color: #d84315;
             text-shadow: 0 0 calc(10px * var(--scale)) #ff8a65; 
             transform-origin: center center;
+        }
+
+        .shield-item {
+            position: absolute;
+            width: calc(50px * var(--scale));
+            image-rendering: pixelated;
+            z-index: 6;
+            animation: itemDrop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards,
+                       itemShake 1.5s 0.5s infinite ease-in-out;
+        }
+
+        @keyframes itemDrop {
+            0% { transform: translateY(-80px) scale(0.5) rotate(-15deg); opacity: 0; }
+            100% { transform: translateY(0) scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        @keyframes itemShake {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-4px) rotate(-10deg); }
+            75% { transform: translateY(-4px) rotate(10deg); }
+        }
+
+        @keyframes damageFloat {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(calc(-100px * var(--scale))) scale(1.5); opacity: 0; }
         }
 
         @keyframes monsterShake {
@@ -168,14 +193,15 @@
             100% { transform: translate(var(--tx), calc(var(--ty) + 120px)) rotate(var(--rot)); opacity: 0; }
         }
 
-        /* === 6. UI 介面 (抬頭顯示器 HUD) === */
-        .hud-hp { 
+        /* === UI 介面 (抬頭顯示器 HUD) === */
+        .hud-stats-container { 
             position: absolute; top: calc(20px * var(--scale)); left: calc(20px * var(--scale)); z-index: 100; 
+            display: flex; flex-direction: column; gap: calc(10px * var(--scale));
             transform: scale(var(--user-ui-scale)); transform-origin: top left;
         }
         
         .hud-highest-lv {
-            position: absolute; top: calc(75px * var(--scale)); left: calc(20px * var(--scale));
+            position: absolute; top: calc(120px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
             border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
             padding: calc(5px * var(--scale)) calc(12px * var(--scale)); 
@@ -210,6 +236,7 @@
         }
         .bar-fill { height: 100%; transition: width 0.3s ease-out; }
         .hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); width: 100%; }
+        .shield-fill { background: linear-gradient(90deg, #9e9e9e, #e0e0e0); width: 0%; }
         .exp-fill { background: linear-gradient(90deg, #fbc02d, #ffeb3b); width: 0%; }
         .stat-text { font-size: calc(14px * var(--scale)); min-width: calc(70px * var(--scale)); text-align: center; }
 
@@ -227,7 +254,7 @@
             font-size: calc(16px * var(--scale)); pointer-events: none; z-index: 100;
         }
 
-        /* === 7. 操作按鈕 === */
+        /* === 操作按鈕 === */
         .controls-left { 
             position: absolute; bottom: calc(40px * var(--scale)); left: calc(40px * var(--scale)); 
             display: flex; gap: calc(20px * var(--scale)); z-index: 100; 
@@ -253,6 +280,7 @@
             font-size: calc(28px * var(--scale)); cursor: pointer; display: flex;
             justify-content: center; align-items: center;
             backdrop-filter: blur(5px); transition: 0.1s;
+            touch-action: none; 
         }
         .btn:active { background: rgba(255, 255, 255, 0.5); transform: scale(0.9); }
         
@@ -263,7 +291,7 @@
         .btn.sys-btn { width: auto; height: calc(40px * var(--scale)); padding: 0 calc(15px * var(--scale)); font-size: calc(14px * var(--scale)); border-radius: calc(20px * var(--scale)); font-weight: bold; }
         .btn.sys-btn.pause-toggle { background: rgba(255, 193, 7, 0.5); border-color: rgba(255, 235, 59, 0.8); }
 
-        /* === 8. 遊戲暫停選單 === */
+        /* === 選單與介面視窗 === */
         .pause-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); 
@@ -282,21 +310,15 @@
             padding: calc(15px * var(--scale)) calc(40px * var(--scale)); 
             font-size: calc(22px * var(--scale)); font-weight: bold;
             border-radius: calc(40px * var(--scale)); cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            touch-action: none;
         }
         .menu-btn:hover { background: white; transform: scale(1.05); }
         .menu-btn:active { transform: scale(0.95); }
         .menu-btn.danger { background: rgba(244, 67, 54, 0.8); color: white; }
         .menu-btn.danger:hover { background: rgba(244, 67, 54, 1); }
 
-        /* === 9. 主畫面與設定畫面樣式 === */
         #menuBgVideo {
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            z-index: 1500; 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1500; 
         }
 
         .screen {
@@ -307,8 +329,7 @@
 
         #mainMenuLogo {
             width: calc(450px * var(--scale)); margin-bottom: calc(40px * var(--scale));
-            animation: mainLogoBreathe 3s infinite ease-in-out;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
+            animation: mainLogoBreathe 3s infinite ease-in-out; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
         }
         .main-btn-group { display: flex; flex-direction: column; gap: calc(20px * var(--scale)); width: calc(250px * var(--scale)); z-index: 10; }
         
@@ -326,51 +347,43 @@
         .settings-item { display: flex; flex-direction: column; gap: calc(10px * var(--scale)); align-items: center; font-size: calc(20px * var(--scale)); font-weight: bold; width: 100%; }
         input[type=range] { width: 100%; cursor: pointer; }
 
-        /* === 10. 手機直向螢幕旋轉提示層 === */
+        /* === GAME OVER 畫面樣式 === */
+        .game-over-title {
+            color: #ff3333;
+            font-size: calc(80px * var(--scale));
+            font-weight: bold;
+            margin-bottom: calc(40px * var(--scale));
+            letter-spacing: calc(10px * var(--scale));
+            text-shadow: 0 0 calc(20px * var(--scale)) #ff0000, 2px 2px 0 #fff;
+            z-index: 10;
+        }
+
         #orientationOverlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(15px);
             z-index: 99999; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; text-align: center;
-            display: none; 
+            color: white; text-align: center; display: none; 
         }
-
         #orientationOverlay h1 { font-size: 32px; margin-bottom: 20px; color: #ffeb3b;}
         #orientationOverlay p { font-size: 18px; line-height: 1.5; padding: 0 20px; }
         
         .rotate-phone-icon {
-            width: 80px; height: 120px;
-            border: 4px solid white; border-radius: 10px;
-            margin-bottom: 30px;
-            position: relative;
-            animation: rotatePhone 2s infinite ease-in-out;
+            width: 80px; height: 120px; border: 4px solid white; border-radius: 10px;
+            margin-bottom: 30px; position: relative; animation: rotatePhone 2s infinite ease-in-out;
         }
         .rotate-phone-icon::after {
-            content: ''; position: absolute;
-            bottom: 5px; left: 50%; transform: translateX(-50%);
+            content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
             width: 15px; height: 15px; border-radius: 50%; border: 2px solid white;
         }
 
-        @keyframes rotatePhone {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-            100% { transform: rotate(90deg); }
-        }
-
-        @media screen and (orientation: portrait) {
-            #orientationOverlay {
-                display: flex !important;
-            }
-        }
+        @keyframes rotatePhone { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
+        @media screen and (orientation: portrait) { #orientationOverlay { display: flex !important; } }
 
         .tap-hint {
-            color: rgba(255,255,255,0.7);
-            font-size: calc(16px * var(--scale));
-            margin-top: calc(20px * var(--scale));
-            animation: pulseText 2s infinite ease-in-out;
-            pointer-events: none;
-            z-index: 10;
+            color: rgba(255,255,255,0.7); font-size: calc(16px * var(--scale));
+            margin-top: calc(20px * var(--scale)); animation: pulseText 2s infinite ease-in-out;
+            pointer-events: none; z-index: 10;
         }
     </style>
 </head>
@@ -400,30 +413,38 @@
         <div class="blur-overlay"></div> 
         <div class="settings-content">
             <h2>系統設定</h2>
-            
             <div class="settings-item">
                 <label for="volumeSlider">遊戲音量 (BGM): <span id="volText">30</span>%</label>
                 <input type="range" id="volumeSlider" min="0" max="100" value="30">
             </div>
-
             <div class="settings-item">
                 <label for="uiScaleSlider">按鈕大小: <span id="uiScaleText">100</span>%</label>
                 <input type="range" id="uiScaleSlider" min="50" max="250" value="100">
             </div>
-
             <button class="menu-btn" id="closeSettingsBtn" style="margin-top: 20px;">返回</button>
         </div>
+    </div>
+
+    <div id="gameOverOverlay" class="screen" style="display: none; z-index: 3000;">
+        <div class="blur-overlay" style="background: rgba(0, 0, 0, 0.8);"></div> 
+        <h1 class="game-over-title">GAME OVER</h1>
+        <button class="menu-btn" id="gameOverContinueBtn" style="z-index: 10;">繼續</button>
     </div>
 
     <div class="stage" id="gameStage">
         
         <img id="gameLogo" src="Game_LOGO.png" alt="Game Logo">
 
-        <div class="hud-hp">
+        <div class="hud-stats-container">
             <div class="stat-box">
                 <span class="stat-label" style="color: #ff5252;">HP</span>
                 <div class="bar-bg"><div class="bar-fill hp-fill" id="hpBar"></div></div>
                 <span class="stat-text" id="hpText">100 / 100</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label" style="color: #bdbdbd;">🛡️</span>
+                <div class="bar-bg"><div class="bar-fill shield-fill" id="shieldBar"></div></div>
+                <span class="stat-text" id="shieldText">0 / 50</span>
             </div>
         </div>
 
@@ -474,33 +495,28 @@
     </div>
 
     <script>
-        // === 禁用手機雙指縮放與雙擊放大 (iOS Safari 必備防護機制) ===
-        document.addEventListener('touchstart', function(event) {
-            if (event.touches.length > 1) {
-                event.preventDefault();
-            }
-        }, { passive: false });
-
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(event) {
-            let now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, { passive: false });
-
         // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let gameScale = 1;
 
+        function toggleFullScreen() {
+            let doc = window.document;
+            let docEl = doc.documentElement;
+            let requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            let cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (requestFullScreen) requestFullScreen.call(docEl).catch(err => console.log(`無法進入全螢幕：${err.message}`));
+            } else {
+                if (cancelFullScreen) cancelFullScreen.call(doc);
+            }
+        }
+
         function fixViewportHeight() {
             let vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
-            
             gameScale = window.innerHeight / 800;
             document.documentElement.style.setProperty('--scale', gameScale);
-
             checkOrientation();
         }
         window.addEventListener('resize', fixViewportHeight);
@@ -509,15 +525,11 @@
 
         function checkOrientation() {
             if (!isMobile) return; 
-
             const isPortrait = window.innerHeight > window.innerWidth;
             const overlay = document.getElementById('orientationOverlay');
-            
             if (isPortrait) {
                 overlay.style.display = 'flex';
-                if (gameStage.style.display === 'block' && !isPaused) {
-                    togglePause(); 
-                }
+                if (gameStage.style.display === 'block' && !isPaused) togglePause(); 
             } else {
                 overlay.style.display = 'none';
             }
@@ -536,6 +548,9 @@
         const restartBtn = document.getElementById('restartBtn');
         const homeBtn = document.getElementById('homeBtn');
 
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const gameOverContinueBtn = document.getElementById('gameOverContinueBtn');
+
         const mainMenu = document.getElementById('mainMenu');
         const settingsMenu = document.getElementById('settingsMenu');
         const startBtn = document.getElementById('startBtn');
@@ -553,11 +568,19 @@
 
         let settingsSource = 'main';
 
+        // 玩家狀態
         let playerHP = 100;
         let playerMaxHP = 100;
+        let playerShield = 0;
+        let playerMaxShield = 50;
         let playerLV = 1;
         let playerEXP = 0;
         let playerMaxEXP = 2; 
+
+        // 主角受傷與擊退變數
+        let playerIsHurt = false;
+        let playerHurtTimer = 0;
+        let playerHurtDir = 1;
 
         let highestLV = localStorage.getItem('rpg_game_highest_lv');
         highestLV = highestLV ? parseInt(highestLV) : 1;
@@ -574,6 +597,7 @@
         const standImg = 'yayun_stand.png'; 
         
         const monsterWalkCycle = ['mouse_run1.png', 'mouse_run2.png', 'mouse_run3.png', 'mouse_run4.png', 'mouse_run5.png', 'mouse_run6.png']; 
+        const monsterAttackCycle = ['mouse_attack_1.png', 'mouse_attack_2.png', 'mouse_attack_3.png', 'mouse_attack_4.png', 'mouse_attack_5.png']; 
         const harmImg = 'harm_mouse.png'; 
         const attackImg = 'yayun_attack.png'; 
 
@@ -586,9 +610,9 @@
         const HARM_STATE_TIME = 200;
 
         let currentFrame = 0; 
-        let animTimer = 0;    
+        let animTimer = 0;   
         
-        let movingDir = 0;    
+        let movingDir = 0;   
         let logicFloorX = -800; 
 
         let isJumping = false;
@@ -601,11 +625,18 @@
 
         let monsters = [];    
         let projectiles = []; 
+        let shields = []; 
 
         let monsterSpawnTimer = 1500; 
+        
+        // 擊殺掉落機制變數 7~10
+        let killCount = 0;
+        let nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7; 
+
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
+        // 音樂系統
         let audioCtx = null;
         let masterGain = null;
         let isBgmPlaying = false;
@@ -617,31 +648,13 @@
         const bpm = 150;
         const noteLength = (60 / bpm) / 2; 
 
-        const bgmMelody = [
-            76, 0, 81, 0, 84, 0, 83, 81, 
-            81, 0, 77, 0, 81, 0, 79, 77, 
-            79, 0, 76, 0, 79, 0, 77, 76, 
-            74, 0, 71, 0, 74, 0, 76, 0   
-        ];
-        
-        const bgmBass = [
-            45, 45, 57, 45, 45, 45, 57, 45, 
-            41, 41, 53, 41, 41, 41, 53, 41, 
-            48, 48, 60, 48, 48, 48, 60, 48, 
-            43, 43, 55, 43, 43, 43, 55, 43  
-        ];
+        const bgmMelody = [ 76, 0, 81, 0, 84, 0, 83, 81, 81, 0, 77, 0, 81, 0, 79, 77, 79, 0, 76, 0, 79, 0, 77, 76, 74, 0, 71, 0, 74, 0, 76, 0 ];
+        const bgmBass = [ 45, 45, 57, 45, 45, 45, 57, 45, 41, 41, 53, 41, 41, 41, 53, 41, 48, 48, 60, 48, 48, 48, 60, 48, 43, 43, 55, 43, 43, 43, 55, 43 ];
 
         const unlockAudio = () => {
             if (isAudioUnlocked) return;
-            
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
             gainNode.gain.value = 0; 
@@ -649,12 +662,9 @@
             gainNode.connect(audioCtx.destination);
             oscillator.start(0);
             oscillator.stop(audioCtx.currentTime + 0.01);
-
             isAudioUnlocked = true;
-            
             document.removeEventListener('click', unlockAudio);
             document.removeEventListener('touchend', unlockAudio);
-            
             initAudio();
         };
 
@@ -662,22 +672,15 @@
         document.addEventListener('touchend', unlockAudio);
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             if (isBgmPlaying) return; 
-
             if (!masterGain) {
                 masterGain = audioCtx.createGain();
                 let currentVol = parseInt(volumeSlider.value) / 100;
                 masterGain.gain.value = currentVol * 0.3; 
                 masterGain.connect(audioCtx.destination);
             }
-            
             isBgmPlaying = true;
             bgmHint.style.display = 'none'; 
             nextNoteTime = audioCtx.currentTime + 0.1;
@@ -688,81 +691,63 @@
             if (midiNote === 0 || !audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            
             osc.type = type; 
             osc.frequency.value = 440 * Math.pow(2, (midiNote - 69) / 12);
-            
             osc.connect(gain);
             gain.connect(masterGain);
-            
             gain.gain.setValueAtTime(0, time);
             gain.gain.linearRampToValueAtTime(volScale, time + 0.01);
             gain.gain.setValueAtTime(volScale, time + duration - 0.03);
             gain.gain.linearRampToValueAtTime(0, time + duration);
-            
             osc.start(time);
             osc.stop(time + duration);
         }
 
         function scheduleAudio() {
             if (!isBgmPlaying) return;
-            
             while (nextNoteTime < audioCtx.currentTime + 0.1) {
-                if (bgmMelody[currentNote]) {
-                    playTone(bgmMelody[currentNote], nextNoteTime, 'square', noteLength * 0.8, 0.4);
-                }
-                
-                if (bgmBass[currentNote]) {
-                    playTone(bgmBass[currentNote], nextNoteTime, 'sawtooth', noteLength * 0.9, 0.5);
-                }
-                
+                if (bgmMelody[currentNote]) playTone(bgmMelody[currentNote], nextNoteTime, 'square', noteLength * 0.8, 0.4);
+                if (bgmBass[currentNote]) playTone(bgmBass[currentNote], nextNoteTime, 'sawtooth', noteLength * 0.9, 0.5);
                 nextNoteTime += noteLength;
                 currentNote = (currentNote + 1) % bgmMelody.length; 
             }
-            
             timerID = requestAnimationFrame(scheduleAudio);
         }
 
-        // === 5. 遊戲核心函數 ===
+        // === 遊戲核心函數 ===
 
         function fireConfetti(amount) {
             const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722'];
             const shapes = ['50%', '0%']; 
-
             for (let i = 0; i < amount; i++) {
                 let conf = document.createElement('div');
                 conf.className = 'confetti';
-                
                 let size = Math.random() * 6 + 6; 
                 conf.style.width = `${size}px`;
                 conf.style.height = `${size * (Math.random() > 0.5 ? 1 : 1.5)}px`; 
                 conf.style.borderRadius = shapes[Math.floor(Math.random() * shapes.length)];
                 conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-                
                 conf.style.left = `calc(50% + ${Math.random() * 20 - 10}px)`;
                 conf.style.bottom = `80px`; 
-
                 let angle = (Math.random() * 140 + 200) * Math.PI / 180; 
                 let dist = Math.random() * 120 + 80; 
                 let tx = Math.cos(angle) * dist;
                 let ty = Math.sin(angle) * dist; 
-
                 conf.style.setProperty('--tx', `${tx}px`);
                 conf.style.setProperty('--ty', `${ty}px`);
                 let rot = Math.random() * 720 - 360; 
                 conf.style.setProperty('--rot', `${rot}deg`);
-
                 playerWrapper.appendChild(conf);
-
-                setTimeout(() => {
-                    if (conf.parentNode) conf.parentNode.removeChild(conf);
-                }, 1000);
+                setTimeout(() => { if (conf.parentNode) conf.parentNode.removeChild(conf); }, 1000);
             }
         }
 
         function updateHUD() {
             document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
             document.getElementById('hpBar').style.width = `${(playerHP / playerMaxHP) * 100}%`;
+
+            document.getElementById('shieldText').innerText = `${playerShield} / ${playerMaxShield}`;
+            document.getElementById('shieldBar').style.width = `${(playerShield / playerMaxShield) * 100}%`;
 
             document.getElementById('lvText').innerText = `LV ${playerLV}`;
             document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
@@ -774,29 +759,80 @@
         function gainEXP(amount) {
             playerEXP += amount;
             let leveledUp = false;
-            
             while (playerEXP >= playerMaxEXP) {
                 playerEXP -= playerMaxEXP; 
                 playerLV++;                
                 playerMaxEXP = Math.pow(2, playerLV); 
                 leveledUp = true;
-
                 if (playerLV > highestLV) {
                     highestLV = playerLV;
                     localStorage.setItem('rpg_game_highest_lv', highestLV);
                 }
             }
-
             if (leveledUp) {
                 let confettiAmount = (playerLV % 5 === 0) ? 100 : 30;
                 fireConfetti(confettiAmount);
+                if (isMobile && navigator.vibrate) navigator.vibrate([50, 50, 100]); 
+            }
+            updateHUD();
+        }
 
-                if (isMobile && navigator.vibrate) {
-                    navigator.vibrate([50, 50, 100]); 
+        // 主角受傷計算與特效
+        function takeDamage(amount, knockbackDir) {
+            if (playerIsHurt || playerHP <= 0) return; 
+
+            if (playerShield > 0) {
+                if (playerShield >= amount) {
+                    playerShield -= amount;
+                } else {
+                    let remainder = amount - playerShield;
+                    playerShield = 0;
+                    playerHP -= remainder;
                 }
+            } else {
+                playerHP -= amount;
             }
 
+            if (playerHP < 0) playerHP = 0;
             updateHUD();
+
+            spawnDamageText((gameStage.offsetWidth / gameScale) / 2, logicCharY + 100, amount);
+
+            // 觸發擊退與受傷狀態
+            playerIsHurt = true;
+            playerHurtTimer = 300; 
+            playerHurtDir = knockbackDir;
+
+            if (!isJumping) {
+                isJumping = true;
+                logicVelocityY = 12; 
+            }
+
+            // GAME OVER 判定
+            if (playerHP <= 0) {
+                // 給予 0.5 秒緩衝，讓擊退動畫播完再叫出選單
+                setTimeout(() => {
+                    isPaused = true;
+                    gameOverOverlay.style.display = 'flex';
+                }, 500);
+            }
+        }
+
+        function spawnDamageText(logicX, logicY, amount) {
+            let span = document.createElement('div');
+            span.innerText = `-${amount}`;
+            span.style.position = 'absolute';
+            span.style.color = '#ff5252';
+            span.style.fontWeight = 'bold';
+            span.style.fontSize = `calc(35px * var(--scale))`;
+            span.style.textShadow = '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000';
+            span.style.left = `${logicX * gameScale}px`;
+            span.style.bottom = `${logicY * gameScale}px`;
+            span.style.zIndex = '200';
+            span.style.pointerEvents = 'none';
+            span.style.animation = 'damageFloat 1s ease-out forwards';
+            gameStage.appendChild(span);
+            setTimeout(() => { if (span.parentNode) gameStage.removeChild(span); }, 1000);
         }
 
         function getRandomFloor() {
@@ -847,6 +883,7 @@
         }
 
         function updatePhysics() {
+            // 處理跳躍
             if (isJumping) {
                 logicCharY += logicVelocityY; 
                 logicVelocityY -= BASE_GRAVITY; 
@@ -856,8 +893,26 @@
                     isJumping = false;
                     logicVelocityY = 0;
                 }
-                playerWrapper.style.transform = `translate(-50%, -${logicCharY * gameScale}px)`;
             }
+
+            // 處理受傷擊退與濾鏡
+            let knockbackPixelOffset = 0;
+            if (playerIsHurt) {
+                playerHurtTimer -= 20;
+                if (playerHurtTimer > 0) {
+                    let progress = playerHurtTimer / 300; 
+                    knockbackPixelOffset = Math.sin(progress * Math.PI) * 50 * playerHurtDir;
+                    playerImg.style.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5)';
+                } else {
+                    playerIsHurt = false;
+                    playerImg.style.filter = 'none';
+                }
+            } else {
+                playerImg.style.filter = 'none';
+            }
+
+            // 同時套用跳躍與擊退位移
+            playerWrapper.style.transform = `translate(calc(-50% + ${knockbackPixelOffset * gameScale}px), -${logicCharY * gameScale}px)`;
         }
 
         function updateAnimation() {
@@ -889,6 +944,9 @@
         }
 
         function updateEntities() {
+            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+            let playerRect = playerImg.getBoundingClientRect(); 
+
             if (movingDir !== 0) {
                 monsterSpawnTimer -= 20; 
                 if (monsterSpawnTimer <= 0) {
@@ -897,26 +955,99 @@
                 }
             }
 
-            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+            // --- 護盾更新與碰撞判定 (邊緣碰撞 AABB) ---
+            for (let i = shields.length - 1; i >= 0; i--) {
+                let shield = shields[i];
+                if (movingDir !== 0) {
+                    shield.logicX -= movingDir * BASE_MOVE_SPEED;
+                    shield.el.style.left = `${shield.logicX * gameScale}px`;
+                }
 
+                if (shield.logicX < -200 || shield.logicX > screenLogicWidth + 200) {
+                    if(shield.el.parentNode) gameStage.removeChild(shield.el);
+                    shields.splice(i, 1);
+                    continue;
+                }
+
+                let shieldRect = shield.el.getBoundingClientRect();
+                if (
+                    playerRect.x < shieldRect.x + shieldRect.width &&
+                    playerRect.x + playerRect.width > shieldRect.x &&
+                    playerRect.y < shieldRect.y + shieldRect.height &&
+                    playerRect.y + playerRect.height > shieldRect.y
+                ) {
+                    if (playerShield < playerMaxShield) {
+                        if(shield.el.parentNode) gameStage.removeChild(shield.el);
+                        shields.splice(i, 1);
+                        playerShield = Math.min(playerMaxShield, playerShield + 10);
+                        updateHUD();
+                        spawnTemporaryLightEffect(shield.logicX, 120); 
+                    }
+                }
+            }
+
+            // --- 怪物更新與碰撞判定 ---
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
                 
                 if (!monster.hit && !monster.done) {
-                    monster.logicX += (BASE_MONSTER_SPEED * monster.dir) - (movingDir * BASE_MOVE_SPEED);
-                    monster.el.style.left = `${monster.logicX * gameScale}px`;
                     
-                    monster.animTimer += 20;
-                    if (monster.animTimer >= 100) {
-                        monster.frame = (monster.frame + 1) % monsterWalkCycle.length;
-                        monster.el.src = monsterWalkCycle[monster.frame];
-                        monster.animTimer = 0;
-                    }
-                    
-                    if (monster.logicX < -200 || monster.logicX > screenLogicWidth + 200) {
-                        gameStage.removeChild(monster.el);
-                        monsters.splice(i, 1);
-                        continue; 
+                    if (monster.attacking) {
+                        // 怪物正在進行咬人動畫
+                        monster.attackTimer += 20;
+                        if (monster.attackTimer >= 100) { 
+                            monster.attackTimer = 0;
+                            monster.attackFrame++;
+                            if (monster.attackFrame < monsterAttackCycle.length) {
+                                monster.el.src = monsterAttackCycle[monster.attackFrame];
+                            } else {
+                                // 動畫播完一輪，結束攻擊判定傷害
+                                monster.attacking = false;
+                                monster.el.src = monsterWalkCycle[monster.frame];
+                                
+                                let pCenter = playerRect.x + playerRect.width / 2;
+                                let mCenter = monster.el.getBoundingClientRect().x + monster.el.getBoundingClientRect().width / 2;
+                                takeDamage(6, pCenter < mCenter ? -1 : 1);
+                            }
+                        }
+                        
+                        if (movingDir !== 0) {
+                            monster.logicX -= movingDir * BASE_MOVE_SPEED;
+                            monster.el.style.left = `${monster.logicX * gameScale}px`;
+                        }
+
+                    } else {
+                        // 怪物追擊移動
+                        monster.logicX += (BASE_MONSTER_SPEED * monster.dir) - (movingDir * BASE_MOVE_SPEED);
+                        monster.el.style.left = `${monster.logicX * gameScale}px`;
+                        
+                        monster.animTimer += 20;
+                        if (monster.animTimer >= 100) {
+                            monster.frame = (monster.frame + 1) % monsterWalkCycle.length;
+                            monster.el.src = monsterWalkCycle[monster.frame];
+                            monster.animTimer = 0;
+                        }
+                        
+                        // 【改用 AABB 邊緣碰撞偵測】
+                        // 一旦兩者的圖片邊界重疊，怪物立刻開始攻擊
+                        let monsterRect = monster.el.getBoundingClientRect(); 
+                        if (
+                            playerRect.x < monsterRect.x + monsterRect.width &&
+                            playerRect.x + playerRect.width > monsterRect.x &&
+                            playerRect.y < monsterRect.y + monsterRect.height &&
+                            playerRect.y + playerRect.height > monsterRect.y
+                        ) {
+                            monster.attacking = true;
+                            monster.attackFrame = 0;
+                            monster.attackTimer = 0;
+                            monster.el.src = monsterAttackCycle[0];
+                        }
+
+                        if (monster.logicX < -200 || monster.logicX > screenLogicWidth + 200) {
+                            gameStage.removeChild(monster.el);
+                            monsters.splice(i, 1);
+                            continue; 
+                        }
                     }
                 }
 
@@ -927,7 +1058,6 @@
                         monster.done = true;
                         monster.doneTimer = 300; 
                         monster.el.className = 'monster monster-vanishing'; 
-                        
                         spawnTemporaryLightEffect(monster.logicX + 90, 120); 
                     }
                 }
@@ -942,6 +1072,7 @@
                 }
             }
 
+            // --- 飛行物 (火球攻擊) 更新 ---
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let projectile = projectiles[i];
                 projectile.logicX += BASE_PROJECTILE_SPEED * projectile.dir;
@@ -970,6 +1101,16 @@
                         monster.el.className = 'monster monster-hit'; 
                         
                         gainEXP(1); 
+                        
+                        // 擊殺掉落護盾判定 (7~10 隻)
+                        killCount++;
+                        if (killCount >= nextShieldKillThreshold) {
+                            killCount = 0;
+                            nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7;
+                            if (Math.random() <= 0.20) {
+                                spawnShield(monster.logicX); 
+                            }
+                        }
                         break; 
                     }
                 }
@@ -983,6 +1124,18 @@
                     }
                 }
             }
+        }
+
+        function spawnShield(spawnLogicX) {
+            let img = document.createElement('img');
+            img.src = 'game_shield.png'; 
+            img.className = 'shield-item';
+            
+            let initialLogicX = spawnLogicX !== undefined ? spawnLogicX : (gameStage.offsetWidth / gameScale + 50);
+            img.style.left = `${initialLogicX * gameScale}px`;
+            img.style.bottom = `calc(90px * var(--scale))`; 
+            gameStage.appendChild(img);
+            shields.push({ el: img, logicX: initialLogicX });
         }
 
         function spawnMonster() {
@@ -1003,7 +1156,8 @@
             gameStage.appendChild(img);
             monsters.push({ 
                 el: img, logicX: initialLogicX, dir: dir, hit: false, hitTimer: 0, 
-                done: false, doneTimer: 0, frame: 0, animTimer: 0
+                done: false, doneTimer: 0, frame: 0, animTimer: 0,
+                attacking: false, attackFrame: 0, attackTimer: 0
             });
         }
 
@@ -1013,7 +1167,6 @@
             span.style.left = `${logicX * gameScale}px`;
             span.style.bottom = `${logicY * gameScale}px`;
             gameStage.appendChild(span);
-            
             span.addEventListener('animationend', () => {
                 if (span.parentNode) gameStage.removeChild(span); 
             });
@@ -1024,11 +1177,8 @@
             span.innerHTML = '🔥';
             span.className = 'projectile';
             
-            if (facingDir === 1) {
-                span.style.transform = 'rotate(90deg)';
-            } else {
-                span.style.transform = 'rotate(-90deg)';
-            }
+            if (facingDir === 1) span.style.transform = 'rotate(90deg)';
+            else span.style.transform = 'rotate(-90deg)';
             
             let spawnLogicX = (gameStage.offsetWidth / gameScale) / 2;
             let spawnLogicY = 50 + logicCharY + 80; 
@@ -1039,17 +1189,17 @@
             projectiles.push({ el: span, logicX: spawnLogicX, dir: facingDir });
         }
 
-        // === 6. 玩家控制邏輯 ===
+        // === 玩家控制邏輯 ===
 
         function jump() {
-            if (!isJumping && !isPaused) {
+            if (!isJumping && !isPaused && playerHP > 0) {
                 isJumping = true;
                 logicVelocityY = BASE_JUMP_POWER; 
             }
         }
 
         function attack() {
-            if (!attacking && !isPaused) {
+            if (!attacking && !isPaused && playerHP > 0) {
                 attacking = true;
                 attackTimer = 200; 
                 playerImg.src = attackImg; 
@@ -1063,7 +1213,7 @@
             else movingDir = 0;
         }
 
-        // === 7. 系統功能 (暫停與選單切換) ===
+        // === 系統功能 (暫停與選單切換) ===
 
         startBtn.addEventListener('click', () => {
             mainMenu.style.display = 'none';
@@ -1072,6 +1222,7 @@
             pauseOverlay.style.display = 'none'; 
             isPaused = false; 
             checkOrientation(); 
+            if(isMobile) toggleFullScreen();
         });
 
         openSettingsBtn.addEventListener('click', () => {
@@ -1084,7 +1235,6 @@
         gameSettingsBtn.addEventListener('click', () => {
             settingsSource = 'game'; 
             if (!isPaused) togglePause(); 
-            
             pauseOverlay.style.display = 'none'; 
             settingsMenu.style.backgroundImage = 'none';
             settingsMenu.style.display = 'flex'; 
@@ -1092,12 +1242,8 @@
 
         closeSettingsBtn.addEventListener('click', () => {
             settingsMenu.style.display = 'none';
-            
-            if (settingsSource === 'main') {
-                mainMenu.style.display = 'flex';
-            } else if (settingsSource === 'game') {
-                pauseOverlay.style.display = 'flex'; 
-            }
+            if (settingsSource === 'main') mainMenu.style.display = 'flex';
+            else if (settingsSource === 'game') pauseOverlay.style.display = 'flex'; 
         });
 
         exitBrowserBtn.addEventListener('click', () => {
@@ -1107,9 +1253,7 @@
         volumeSlider.addEventListener('input', (e) => {
             let val = e.target.value;
             volText.innerText = val;
-            if (masterGain) {
-                masterGain.gain.value = (val / 100) * 0.3;
-            }
+            if (masterGain) masterGain.gain.value = (val / 100) * 0.3;
         });
 
         uiScaleSlider.addEventListener('input', (e) => {
@@ -1120,6 +1264,9 @@
         });
 
         function togglePause() {
+            // 如果玩家死亡不允許自行切換暫停
+            if (playerHP <= 0) return; 
+
             isPaused = !isPaused;
             if (isPaused) {
                 pauseOverlay.style.display = 'flex';       
@@ -1137,12 +1284,27 @@
             playerLV = 1;
             playerEXP = 0;
             playerMaxEXP = 2; 
+            playerHP = 100;
+            playerShield = 0;
+            
+            playerIsHurt = false;
+            playerHurtTimer = 0;
+            playerImg.style.filter = 'none';
+
+            killCount = 0;
+            nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7;
+
             updateHUD();
 
             monsters.forEach(m => { if (m.el.parentNode) gameStage.removeChild(m.el); });
             monsters = [];
+            
+            shields.forEach(s => { if (s.el.parentNode) gameStage.removeChild(s.el); });
+            shields = [];
+
             projectiles.forEach(p => { if (p.el.parentNode) gameStage.removeChild(p.el); });
             projectiles = [];
+            
             document.querySelectorAll('.vfx-light').forEach(light => {
                 if (light.parentNode) gameStage.removeChild(light);
             });
@@ -1151,9 +1313,12 @@
             isJumping = false; attacking = false; movingDir = 0;
             keys.left = false; keys.right = false;
             playerImg.src = standImg;
-            playerWrapper.style.transform = `translate(-50%, -0px)`;
+            playerWrapper.style.transform = `translate(-50%, 0px)`;
             
-            togglePause(); 
+            // 強制解除暫停狀態以確保下一場遊戲正常運作
+            isPaused = false; 
+            pauseOverlay.style.display = 'none'; 
+            gameStage.classList.remove('paused-anim');
         }
 
         homeBtn.addEventListener('click', () => {
@@ -1162,11 +1327,20 @@
             menuBgVideo.style.display = 'block'; 
             
             restartGame(); 
-            isPaused = true;
-            pauseOverlay.style.display = 'none'; 
+            isPaused = true; 
         });
 
-        // === 8. 事件監聽綁定區 ===
+        // 綁定 GAME OVER 畫面的繼續按鈕
+        gameOverContinueBtn.addEventListener('click', () => {
+            gameOverOverlay.style.display = 'none';
+            gameStage.style.display = 'none';
+            mainMenu.style.display = 'flex';
+            menuBgVideo.style.display = 'block'; 
+            restartGame(); 
+            isPaused = true; // 在主選單維持背景停止
+        });
+
+        // === 事件監聽綁定區 ===
 
         pauseBtn.addEventListener('click', togglePause);
         resumeBtn.addEventListener('click', togglePause);
@@ -1211,11 +1385,10 @@
         });
 
         fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                gameStage.requestFullscreen().catch(err => { alert(`無法進入全螢幕：${err.message}`); });
+            toggleFullScreen();
+            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
                 fullscreenBtn.innerText = "退出全螢幕";
             } else {
-                document.exitFullscreen();
                 fullscreenBtn.innerText = "全螢幕";
             }
         });
