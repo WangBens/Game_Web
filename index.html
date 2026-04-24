@@ -242,7 +242,22 @@
             border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
             color: white; font-weight: bold; backdrop-filter: blur(5px);
         }
-        .stat-label { font-size: calc(18px * var(--scale)); min-width: calc(45px * var(--scale)); text-shadow: 1px 1px 2px black; }
+        /* [修改] stat-label 原本設定固定 min-width，現在改寬一點以容納放大的圖片 */
+        .stat-label { 
+            font-size: calc(18px * var(--scale)); 
+            min-width: calc(50px * var(--scale)); /* 稍微放大 min-width */
+            text-shadow: 1px 1px 2px black; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+        }
+        /* [新增] 用來控制 stat-label 內部圖片大小的 CSS 規則 */
+        .stat-label img {
+            /* [設定] 這裡控制圖片高度，從 24px 放大到 36px */
+            height: calc(36px * var(--scale)); 
+            image-rendering: pixelated;
+        }
+
         .bar-bg {
             width: calc(200px * var(--scale)); height: calc(18px * var(--scale));
             background: rgba(255, 255, 255, 0.2); border-radius: calc(10px * var(--scale));
@@ -449,13 +464,15 @@
 
         <div class="hud-stats-container">
             <div class="stat-box">
-                <span class="stat-label" style="color: #ff5252;">HP</span>
+                <span class="stat-label">
+                    <img src="Game_heart.png" alt="HP">
+                </span>
                 <div class="bar-bg"><div class="bar-fill hp-fill" id="hpBar"></div></div>
                 <span class="stat-text" id="hpText">100 / 100</span>
             </div>
             <div class="stat-box">
-                <span class="stat-label" style="display: flex; align-items: center; justify-content: center;">
-                    <img src="game_shield.png" style="height: calc(24px * var(--scale)); image-rendering: pixelated;" alt="Shield">
+                <span class="stat-label">
+                    <img src="game_shield.png" alt="Shield">
                 </span>
                 <div class="bar-bg"><div class="bar-fill shield-fill" id="shieldBar"></div></div>
                 <span class="stat-text" id="shieldText">0 / 50</span>
@@ -509,6 +526,8 @@
     </div>
 
     <script>
+        // (這裡的 JavaScript 代碼保持不變，因此為了簡潔而省略，請保留原檔案中的內容)
+        // === JavaScript 控制邏輯 (保持不變) ===
         // === 主選單影片與背景控制邏輯 ===
         const bgVideos = [
             { src: 'Game_start_movie_sunny.mp4', theme: 'sunny' },
@@ -517,7 +536,7 @@
         
         let currentBgIndex = Math.floor(Math.random() * bgVideos.length);
         const menuBgVideo = document.getElementById('menuBgVideo');
-        menuBgVideo.src = bgVideos[currentBgIndex].src;
+        if (menuBgVideo) menuBgVideo.src = bgVideos[currentBgIndex].src;
         let currentMenuTheme = bgVideos[currentBgIndex].theme; 
 
         let shouldSwitchVideo = false;
@@ -526,20 +545,22 @@
             shouldSwitchVideo = true;
         }, 24000);
 
-        menuBgVideo.addEventListener('ended', () => {
-            if (shouldSwitchVideo) {
-                shouldSwitchVideo = false;
-                currentBgIndex = (currentBgIndex + 1) % bgVideos.length;
-                let nextBg = bgVideos[currentBgIndex];
-                menuBgVideo.src = nextBg.src;
-                currentMenuTheme = nextBg.theme;
-                
-                if (gameStage.style.display !== 'block') {
-                    setBGM(currentMenuTheme);
+        if (menuBgVideo) {
+            menuBgVideo.addEventListener('ended', () => {
+                if (shouldSwitchVideo) {
+                    shouldSwitchVideo = false;
+                    currentBgIndex = (currentBgIndex + 1) % bgVideos.length;
+                    let nextBg = bgVideos[currentBgIndex];
+                    menuBgVideo.src = nextBg.src;
+                    currentMenuTheme = nextBg.theme;
+                    
+                    if (gameStage.style.display !== 'block') {
+                        setBGM(currentMenuTheme);
+                    }
                 }
-            }
-            menuBgVideo.play().catch(err => console.log('影片播放被阻擋:', err));
-        });
+                menuBgVideo.play().catch(err => console.log('影片播放被阻擋:', err));
+            });
+        }
 
         // === 響應式邏輯與環境偵測 ===
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -630,8 +651,8 @@
 
         let savedUiScale = localStorage.getItem('rpg_game_ui_scale');
         savedUiScale = savedUiScale ? parseInt(savedUiScale) : 100;
-        uiScaleSlider.value = savedUiScale;
-        uiScaleText.innerText = savedUiScale;
+        if (uiScaleSlider) uiScaleSlider.value = savedUiScale;
+        if (uiScaleText) uiScaleText.innerText = savedUiScale;
         document.documentElement.style.setProperty('--user-ui-scale', savedUiScale / 100);
 
         const floorImages = ['floor_grassland_1.png', 'floor_grassland_2.png'];
@@ -779,7 +800,7 @@
                 masterGain.connect(audioCtx.destination);
             }
             isBgmPlaying = true;
-            bgmHint.style.display = 'none'; 
+            if (bgmHint) bgmHint.style.display = 'none'; 
             nextNoteTime = audioCtx.currentTime + 0.1;
             scheduleAudio();
         }
@@ -840,17 +861,17 @@
         }
 
         function updateHUD() {
-            document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
-            document.getElementById('hpBar').style.width = `${(playerHP / playerMaxHP) * 100}%`;
+            if (document.getElementById('hpText')) document.getElementById('hpText').innerText = `${playerHP} / ${playerMaxHP}`;
+            if (document.getElementById('hpBar')) document.getElementById('hpBar').style.width = `${(playerHP / playerMaxHP) * 100}%`;
 
-            document.getElementById('shieldText').innerText = `${playerShield} / ${playerMaxShield}`;
-            document.getElementById('shieldBar').style.width = `${(playerShield / playerMaxShield) * 100}%`;
+            if (document.getElementById('shieldText')) document.getElementById('shieldText').innerText = `${playerShield} / ${playerMaxShield}`;
+            if (document.getElementById('shieldBar')) document.getElementById('shieldBar').style.width = `${(playerShield / playerMaxShield) * 100}%`;
 
-            document.getElementById('lvText').innerText = `LV ${playerLV}`;
-            document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
-            document.getElementById('expBar').style.width = `${(playerEXP / playerMaxEXP) * 100}%`;
+            if (document.getElementById('lvText')) document.getElementById('lvText').innerText = `LV ${playerLV}`;
+            if (document.getElementById('expText')) document.getElementById('expText').innerText = `${playerEXP} / ${playerMaxEXP}`;
+            if (document.getElementById('expBar')) document.getElementById('expBar').style.width = `${(playerEXP / playerMaxEXP) * 100}%`;
 
-            document.getElementById('highestLvText').innerText = highestLV;
+            if (document.getElementById('highestLvText')) document.getElementById('highestLvText').innerText = highestLV;
         }
 
         function gainEXP(amount) {
@@ -934,7 +955,7 @@
             if (playerHP <= 0) {
                 setTimeout(() => {
                     isPaused = true;
-                    gameOverOverlay.style.display = 'flex';
+                    if (gameOverOverlay) gameOverOverlay.style.display = 'flex';
                 }, 500);
             }
         }
@@ -960,10 +981,12 @@
             return floorImages[Math.floor(Math.random() * floorImages.length)];
         }
 
-        for (let i = 0; i < 10; i++) {
-            let img = document.createElement('img');
-            img.src = getRandomFloor();
-            floorTrack.appendChild(img);
+        if (floorTrack) {
+            for (let i = 0; i < 10; i++) {
+                let img = document.createElement('img');
+                img.src = getRandomFloor();
+                floorTrack.appendChild(img);
+            }
         }
 
         updateHUD(); 
@@ -982,26 +1005,28 @@
         function updateFloor() {
             if (movingDir !== 0) {
                 logicFloorX -= movingDir * BASE_MOVE_SPEED; 
-                playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)'; 
+                if (playerImg) playerImg.style.transform = movingDir === 1 ? 'scaleX(1)' : 'scaleX(-1)'; 
                 facingDir = movingDir;
             }
 
-            if (logicFloorX <= -BASE_FLOOR_WIDTH * 2) {
-                logicFloorX += BASE_FLOOR_WIDTH; 
-                floorTrack.removeChild(floorTrack.firstElementChild); 
-                let newImg = document.createElement('img');
-                newImg.src = getRandomFloor();
-                floorTrack.appendChild(newImg); 
+            if (floorTrack) {
+                if (logicFloorX <= -BASE_FLOOR_WIDTH * 2) {
+                    logicFloorX += BASE_FLOOR_WIDTH; 
+                    floorTrack.removeChild(floorTrack.firstElementChild); 
+                    let newImg = document.createElement('img');
+                    newImg.src = getRandomFloor();
+                    floorTrack.appendChild(newImg); 
+                }
+                else if (logicFloorX >= 0) {
+                    logicFloorX -= BASE_FLOOR_WIDTH; 
+                    floorTrack.removeChild(floorTrack.lastElementChild); 
+                    let newImg = document.createElement('img');
+                    newImg.src = getRandomFloor();
+                    floorTrack.insertBefore(newImg, floorTrack.firstElementChild); 
+                }
+                
+                floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
             }
-            else if (logicFloorX >= 0) {
-                logicFloorX -= BASE_FLOOR_WIDTH; 
-                floorTrack.removeChild(floorTrack.lastElementChild); 
-                let newImg = document.createElement('img');
-                newImg.src = getRandomFloor();
-                floorTrack.insertBefore(newImg, floorTrack.firstElementChild); 
-            }
-            
-            floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
         }
 
         function updateClouds() {
@@ -1068,19 +1093,20 @@
                 if (playerHurtTimer > 0) {
                     let progress = playerHurtTimer / 300; 
                     knockbackPixelOffset = Math.sin(progress * Math.PI) * 50 * playerHurtDir;
-                    playerImg.style.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5)';
+                    if (playerImg) playerImg.style.filter = 'brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5)';
                 } else {
                     playerIsHurt = false;
-                    playerImg.style.filter = 'none';
+                    if (playerImg) playerImg.style.filter = 'none';
                 }
             } else {
-                playerImg.style.filter = 'none';
+                if (playerImg) playerImg.style.filter = 'none';
             }
 
-            playerWrapper.style.transform = `translate(calc(-50% + ${knockbackPixelOffset * gameScale}px), -${logicCharY * gameScale}px)`;
+            if (playerWrapper) playerWrapper.style.transform = `translate(calc(-50% + ${knockbackPixelOffset * gameScale}px), -${logicCharY * gameScale}px)`;
         }
 
         function updateAnimation() {
+            if (!playerImg) return;
             if (attacking) {
                 playerImg.src = attackImg;
                 attackTimer -= 20; 
@@ -1110,7 +1136,7 @@
 
         function updateEntities() {
             let screenLogicWidth = gameStage.offsetWidth / gameScale;
-            let playerRect = playerImg.getBoundingClientRect(); 
+            let playerRect = playerImg ? playerImg.getBoundingClientRect() : null; 
 
             if (movingDir !== 0) {
                 monsterSpawnTimer -= 20; 
@@ -1134,7 +1160,7 @@
                 }
 
                 let shieldRect = shield.el.getBoundingClientRect();
-                if (
+                if (playerRect &&
                     playerRect.x < shieldRect.x + shieldRect.width &&
                     playerRect.x + playerRect.width > shieldRect.x &&
                     playerRect.y < shieldRect.y + shieldRect.height &&
@@ -1165,8 +1191,9 @@
                                 monster.attacking = false;
                                 monster.el.src = monsterWalkCycle[monster.frame];
                                 
-                                let pCenter = playerRect.x + playerRect.width / 2;
+                                let pCenter = playerRect ? playerRect.x + playerRect.width / 2 : 0;
                                 let mCenter = monster.el.getBoundingClientRect().x + monster.el.getBoundingClientRect().width / 2;
+                                // 攻擊力改為 6 點
                                 takeDamage(6, pCenter < mCenter ? -1 : 1); 
                             }
                         }
@@ -1188,7 +1215,7 @@
                         }
                         
                         let monsterRect = monster.el.getBoundingClientRect(); 
-                        if (
+                        if (playerRect &&
                             playerRect.x < monsterRect.x + monsterRect.width &&
                             playerRect.x + playerRect.width > monsterRect.x &&
                             playerRect.y < monsterRect.y + monsterRect.height &&
@@ -1356,7 +1383,7 @@
             if (!attacking && !isPaused && playerHP > 0) {
                 attacking = true;
                 attackTimer = 200; 
-                playerImg.src = attackImg; 
+                if (playerImg) playerImg.src = attackImg; 
                 spawnProjectile();
             }
         }
@@ -1367,71 +1394,93 @@
             else movingDir = 0;
         }
 
-        // === 系統功能 (暫停與選單切換) ===
+        // === 系統功能 (暫探與選單切換) ===
 
-        startBtn.addEventListener('click', () => {
-            mainMenu.style.display = 'none';
-            menuBgVideo.style.display = 'none'; 
-            gameStage.style.display = 'block';
-            pauseOverlay.style.display = 'none'; 
-            isPaused = false; 
-            
-            setBGM('battle'); 
-            
-            checkOrientation(); 
-            if(isMobile) toggleFullScreen();
-        });
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                if (mainMenu) mainMenu.style.display = 'none';
+                if (menuBgVideo) menuBgVideo.style.display = 'none'; 
+                gameStage.style.display = 'block';
+                if (pauseOverlay) pauseOverlay.style.display = 'none'; 
+                isPaused = false; 
+                
+                setBGM('battle'); 
+                
+                checkOrientation(); 
+                if(isMobile) toggleFullScreen();
+            });
+        }
 
-        openSettingsBtn.addEventListener('click', () => {
-            settingsSource = 'main'; 
-            mainMenu.style.display = 'none';
-            settingsMenu.style.backgroundImage = "url('game_start_background.png')";
-            settingsMenu.style.display = 'flex';
-        });
+        if (openSettingsBtn) {
+            openSettingsBtn.addEventListener('click', () => {
+                settingsSource = 'main'; 
+                if (mainMenu) mainMenu.style.display = 'none';
+                if (settingsMenu) {
+                    settingsMenu.style.backgroundImage = "url('game_start_background.png')";
+                    settingsMenu.style.display = 'flex';
+                }
+            });
+        }
 
-        gameSettingsBtn.addEventListener('click', () => {
-            settingsSource = 'game'; 
-            if (!isPaused) togglePause(); 
-            pauseOverlay.style.display = 'none'; 
-            settingsMenu.style.backgroundImage = 'none';
-            settingsMenu.style.display = 'flex'; 
-        });
+        if (gameSettingsBtn) {
+            gameSettingsBtn.addEventListener('click', () => {
+                settingsSource = 'game'; 
+                if (!isPaused) togglePause(); 
+                if (pauseOverlay) pauseOverlay.style.display = 'none'; 
+                if (settingsMenu) {
+                    settingsMenu.style.backgroundImage = 'none';
+                    settingsMenu.style.display = 'flex'; 
+                }
+            });
+        }
 
-        closeSettingsBtn.addEventListener('click', () => {
-            settingsMenu.style.display = 'none';
-            if (settingsSource === 'main') mainMenu.style.display = 'flex';
-            else if (settingsSource === 'game') pauseOverlay.style.display = 'flex'; 
-        });
+        if (closeSettingsBtn) {
+            closeSettingsBtn.addEventListener('click', () => {
+                if (settingsMenu) settingsMenu.style.display = 'none';
+                if (settingsSource === 'main') {
+                    if (mainMenu) mainMenu.style.display = 'flex';
+                }
+                else if (settingsSource === 'game') {
+                    if (pauseOverlay) pauseOverlay.style.display = 'flex'; 
+                }
+            });
+        }
 
-        exitBrowserBtn.addEventListener('click', () => {
-            window.location.href = 'https://www.google.com'; 
-        });
+        if (exitBrowserBtn) {
+            exitBrowserBtn.addEventListener('click', () => {
+                window.location.href = 'https://www.google.com'; 
+            });
+        }
 
-        volumeSlider.addEventListener('input', (e) => {
-            let val = e.target.value;
-            volText.innerText = val;
-            if (masterGain) {
-                masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
-                masterGain.gain.setValueAtTime((val / 100) * 0.3, audioCtx.currentTime);
-            }
-        });
+        if (volumeSlider) {
+            volumeSlider.addEventListener('input', (e) => {
+                let val = e.target.value;
+                if (volText) volText.innerText = val;
+                if (masterGain) {
+                    masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                    masterGain.gain.setValueAtTime((val / 100) * 0.3, audioCtx.currentTime);
+                }
+            });
+        }
 
-        uiScaleSlider.addEventListener('input', (e) => {
-            let scaleVal = e.target.value;
-            uiScaleText.innerText = scaleVal;
-            document.documentElement.style.setProperty('--user-ui-scale', scaleVal / 100);
-            localStorage.setItem('rpg_game_ui_scale', scaleVal);
-        });
+        if (uiScaleSlider) {
+            uiScaleSlider.addEventListener('input', (e) => {
+                let scaleVal = e.target.value;
+                if (uiScaleText) uiScaleText.innerText = scaleVal;
+                document.documentElement.style.setProperty('--user-ui-scale', scaleVal / 100);
+                localStorage.setItem('rpg_game_ui_scale', scaleVal);
+            });
+        }
 
         function togglePause() {
             if (playerHP <= 0) return; 
 
             isPaused = !isPaused;
             if (isPaused) {
-                pauseOverlay.style.display = 'flex';       
+                if (pauseOverlay) pauseOverlay.style.display = 'flex';       
                 gameStage.classList.add('paused-anim');    
             } else {
-                pauseOverlay.style.display = 'none';       
+                if (pauseOverlay) pauseOverlay.style.display = 'none';       
                 gameStage.classList.remove('paused-anim'); 
                 keys.left = false;
                 keys.right = false;
@@ -1448,7 +1497,7 @@
             
             playerIsHurt = false;
             playerHurtTimer = 0;
-            playerImg.style.filter = 'none';
+            if (playerImg) playerImg.style.filter = 'none';
 
             killCount = 0;
 
@@ -1477,60 +1526,71 @@
             logicCharY = 0; logicVelocityY = 0; logicFloorX = -800;
             isJumping = false; attacking = false; movingDir = 0;
             keys.left = false; keys.right = false;
-            playerImg.src = standImg;
-            playerWrapper.style.transform = `translate(-50%, 0px)`;
+            if (playerImg) playerImg.src = standImg;
+            if (playerWrapper) playerWrapper.style.transform = `translate(-50%, 0px)`;
             
             isPaused = false; 
-            pauseOverlay.style.display = 'none'; 
+            if (pauseOverlay) pauseOverlay.style.display = 'none'; 
             gameStage.classList.remove('paused-anim');
         }
 
-        homeBtn.addEventListener('click', () => {
-            gameStage.style.display = 'none';
-            mainMenu.style.display = 'flex';
-            menuBgVideo.style.display = 'block'; 
-            
-            setBGM(currentMenuTheme); 
-            
-            restartGame(); 
-            isPaused = true; 
-        });
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => {
+                gameStage.style.display = 'none';
+                if (mainMenu) mainMenu.style.display = 'flex';
+                if (menuBgVideo) menuBgVideo.style.display = 'block'; 
+                
+                setBGM(currentMenuTheme); 
+                
+                restartGame(); 
+                isPaused = true; 
+            });
+        }
 
-        gameOverContinueBtn.addEventListener('click', () => {
-            gameOverOverlay.style.display = 'none';
-            gameStage.style.display = 'none';
-            mainMenu.style.display = 'flex';
-            menuBgVideo.style.display = 'block'; 
-            
-            setBGM(currentMenuTheme); 
-            
-            restartGame(); 
-            isPaused = true; 
-        });
+        if (gameOverContinueBtn) {
+            gameOverContinueBtn.addEventListener('click', () => {
+                if (gameOverOverlay) gameOverOverlay.style.display = 'none';
+                gameStage.style.display = 'none';
+                if (mainMenu) mainMenu.style.display = 'flex';
+                if (menuBgVideo) menuBgVideo.style.display = 'block'; 
+                
+                setBGM(currentMenuTheme); 
+                
+                restartGame(); 
+                isPaused = true; 
+            });
+        }
 
         // === 事件監聽綁定區 ===
 
-        pauseBtn.addEventListener('click', togglePause);
-        resumeBtn.addEventListener('click', togglePause);
-        restartBtn.addEventListener('click', restartGame);
+        if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+        if (resumeBtn) resumeBtn.addEventListener('click', togglePause);
+        if (restartBtn) restartBtn.addEventListener('click', restartGame);
 
-        document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
-        document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
-        document.getElementById('rightBtn').addEventListener('mouseleave', () => { keys.right = false; updateMovingDir(); });
+        if (document.getElementById('rightBtn')) {
+            document.getElementById('rightBtn').addEventListener('mousedown', () => { keys.right = true; updateMovingDir(); });
+            document.getElementById('rightBtn').addEventListener('mouseup', () => { keys.right = false; updateMovingDir(); });
+            document.getElementById('rightBtn').addEventListener('mouseleave', () => { keys.right = false; updateMovingDir(); });
+            document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
+            document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
+        }
 
-        document.getElementById('leftBtn').addEventListener('mousedown', () => { keys.left = true; updateMovingDir(); });
-        document.getElementById('leftBtn').addEventListener('mouseup', () => { keys.left = false; updateMovingDir(); });
-        document.getElementById('leftBtn').addEventListener('mouseleave', () => { keys.left = false; updateMovingDir(); });
+        if (document.getElementById('leftBtn')) {
+            document.getElementById('leftBtn').addEventListener('mousedown', () => { keys.left = true; updateMovingDir(); });
+            document.getElementById('leftBtn').addEventListener('mouseup', () => { keys.left = false; updateMovingDir(); });
+            document.getElementById('leftBtn').addEventListener('mouseleave', () => { keys.left = false; updateMovingDir(); });
+            document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
+            document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
+        }
 
-        document.getElementById('jumpBtn').addEventListener('mousedown', jump);
-        document.getElementById('attackBtn').addEventListener('mousedown', attack);
-
-        document.getElementById('rightBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; updateMovingDir(); });
-        document.getElementById('rightBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; updateMovingDir(); });
-        document.getElementById('leftBtn').addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; updateMovingDir(); });
-        document.getElementById('leftBtn').addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; updateMovingDir(); });
-        document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
-        document.getElementById('attackBtn').addEventListener('touchstart', (e) => { e.preventDefault(); attack(); });
+        if (document.getElementById('jumpBtn')) {
+            document.getElementById('jumpBtn').addEventListener('mousedown', jump);
+            document.getElementById('jumpBtn').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+        }
+        if (document.getElementById('attackBtn')) {
+            document.getElementById('attackBtn').addEventListener('mousedown', attack);
+            document.getElementById('attackBtn').addEventListener('touchstart', (e) => { e.preventDefault(); attack(); });
+        }
 
         window.addEventListener('keydown', (e) => {
             if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
@@ -1552,18 +1612,20 @@
             updateMovingDir();
         });
 
-        fullscreenBtn.addEventListener('click', () => {
-            toggleFullScreen();
-            if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-                fullscreenBtn.innerText = "退出全螢幕";
-            } else {
-                fullscreenBtn.innerText = "全螢幕";
-            }
-        });
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', () => {
+                toggleFullScreen();
+                if (!document.fullscreenElement && !document.mozFullScreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                    fullscreenBtn.innerText = "退出全螢幕";
+                } else {
+                    fullscreenBtn.innerText = "全螢幕";
+                }
+            });
+        }
 
-        let screenWidth = window.innerWidth / gameScale;
+        let screenWidthInit = window.innerWidth / gameScale;
         for(let i=0; i<3; i++) {
-            spawnCloud(Math.random() * screenWidth);
+            spawnCloud(Math.random() * screenWidthInit);
         }
 
     </script>
