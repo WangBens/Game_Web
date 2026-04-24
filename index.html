@@ -33,19 +33,34 @@
             touch-action: none; 
         }
 
+        /* 遊戲主舞台：新增像素風格的漸層藍天 */
         .stage {
             position: absolute; 
             top: 0; 
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: black;
+            background: linear-gradient(to bottom, 
+                #64b5f6 0%, #64b5f6 20%, 
+                #4fc3f7 20%, #4fc3f7 40%, 
+                #29b6f6 40%, #29b6f6 60%, 
+                #03a9f4 60%, #03a9f4 80%, 
+                #039be5 80%, #039be5 100%);
             overflow: hidden;
             display: none; 
         }
 
         .paused-anim * {
             animation-play-state: paused !important;
+        }
+
+        /* 雲朵樣式 */
+        .cloud {
+            position: absolute;
+            z-index: 2; /* 放在角色和背景之間 */
+            image-rendering: pixelated;
+            opacity: 0.9;
+            pointer-events: none;
         }
 
         .floor-track {
@@ -55,6 +70,7 @@
             display: flex;
             height: calc(400px * var(--scale));
             width: max-content;
+            z-index: 3;
         }
 
         .floor-track img {
@@ -201,7 +217,8 @@
         }
         
         .hud-highest-lv {
-            position: absolute; top: calc(120px * var(--scale)); left: calc(20px * var(--scale));
+            /* 調整最高紀錄的位置往下，避免與護盾條重疊 */
+            position: absolute; top: calc(160px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
             border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
             padding: calc(5px * var(--scale)) calc(12px * var(--scale)); 
@@ -499,13 +516,11 @@
             { src: 'Game_start_background_RedForest.mp4', theme: 'forest' }
         ];
         
-        // 隨機選定初始場景
         let currentBgIndex = Math.floor(Math.random() * bgVideos.length);
         const menuBgVideo = document.getElementById('menuBgVideo');
         menuBgVideo.src = bgVideos[currentBgIndex].src;
         let currentMenuTheme = bgVideos[currentBgIndex].theme; 
 
-        // 標記是否需要切換影片
         let shouldSwitchVideo = false;
 
         // 每 24 秒標記要求切換影片
@@ -513,23 +528,20 @@
             shouldSwitchVideo = true;
         }, 24000);
 
-        // 利用影片的 ended 事件，手動控制循環與切換，確保「播完才換」
+        // 影片結束時，若標記亮起則切換場景與音樂
         menuBgVideo.addEventListener('ended', () => {
             if (shouldSwitchVideo) {
-                // 收到切換請求，執行場景切換
                 shouldSwitchVideo = false;
                 currentBgIndex = (currentBgIndex + 1) % bgVideos.length;
                 let nextBg = bgVideos[currentBgIndex];
                 menuBgVideo.src = nextBg.src;
                 currentMenuTheme = nextBg.theme;
                 
-                // 如果目前不在遊戲中 (例如在主選單或設定)，則立即切換 BGM
-                const gameStage = document.getElementById('gameStage');
+                // 只有不在遊玩中才切換音樂
                 if (gameStage.style.display !== 'block') {
                     setBGM(currentMenuTheme);
                 }
             }
-            // 手動觸發重播，達成無縫循環或播放新影片
             menuBgVideo.play().catch(err => console.log('影片播放被阻擋:', err));
         });
 
@@ -605,7 +617,6 @@
 
         let settingsSource = 'main';
 
-        // 玩家狀態
         let playerHP = 100;
         let playerMaxHP = 100;
         let playerShield = 0;
@@ -614,7 +625,6 @@
         let playerEXP = 0;
         let playerMaxEXP = 2; 
 
-        // 主角受傷與擊退變數
         let playerIsHurt = false;
         let playerHurtTimer = 0;
         let playerHurtDir = 1;
@@ -637,6 +647,8 @@
         const monsterAttackCycle = ['mouse_attack_1.png', 'mouse_attack_2.png', 'mouse_attack_3.png', 'mouse_attack_4.png', 'mouse_attack_5.png']; 
         const harmImg = 'harm_mouse.png'; 
         const attackImg = 'yayun_attack.png'; 
+
+        const cloudImages = ['cloud_1.png', 'cloud_2.png', 'cloud_3.png', 'cloud_4.png'];
 
         const BASE_MOVE_SPEED = 6;
         const BASE_FLOOR_WIDTH = 800;
@@ -663,17 +675,18 @@
         let monsters = [];    
         let projectiles = []; 
         let shields = []; 
+        let clouds = []; // 雲朵陣列
 
         let monsterSpawnTimer = 1500; 
+        let cloudSpawnTimer = 0; // 雲朵生成計時器
         
-        // 擊殺掉落機制變數
         let killCount = 0;
-        let nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7; 
+        const SHIELD_KILL_THRESHOLD = 3; // 改為每 3 隻固定判定
 
         const keys = { left: false, right: false }; 
         let isPaused = true; 
 
-        // === 全新動態 BGM 系統 ===
+        // === 全新動態 BGM 平滑淡入淡出系統 ===
         let audioCtx = null;
         let masterGain = null;
         let isBgmPlaying = false;
@@ -682,7 +695,6 @@
         let timerID;
         let isAudioUnlocked = false;
 
-        // 音樂譜面定義
         const sunnyMelody = [76, 0, 81, 0, 84, 0, 83, 81, 81, 0, 77, 0, 81, 0, 79, 77, 79, 0, 76, 0, 79, 0, 77, 76, 74, 0, 71, 0, 74, 0, 76, 0];
         const sunnyBass = [45, 45, 57, 45, 45, 45, 57, 45, 41, 41, 53, 41, 41, 41, 53, 41, 48, 48, 60, 48, 48, 48, 60, 48, 43, 43, 55, 43, 43, 43, 55, 43];
 
@@ -698,33 +710,49 @@
         let melodyWave = 'square';
         let bassWave = 'sawtooth';
         let noteLength = 0;
+        let currentBgmTheme = '';
 
-        // BGM 統一切換函數
         function setBGM(theme) {
-            currentNote = 0; 
-            if (theme === 'sunny') {
-                currentMelody = sunnyMelody;
-                currentBass = sunnyBass;
-                currentBPM = 150; 
-                melodyWave = 'square';
-                bassWave = 'sawtooth';
-            } else if (theme === 'forest') {
-                currentMelody = forestMelody;
-                currentBass = forestBass;
-                currentBPM = 90; // 緩慢、幽靈感
-                melodyWave = 'sine'; // 圓滑陰森的音色
-                bassWave = 'triangle';
-            } else if (theme === 'battle') {
-                currentMelody = battleMelody;
-                currentBass = battleBass;
-                currentBPM = 180; // 刺激、節奏快
-                melodyWave = 'square'; 
-                bassWave = 'sawtooth';
+            if (currentBgmTheme === theme) return;
+            currentBgmTheme = theme;
+
+            const applyThemeSettings = () => {
+                currentNote = 0; 
+                if (theme === 'sunny') {
+                    currentMelody = sunnyMelody; currentBass = sunnyBass;
+                    currentBPM = 150; melodyWave = 'square'; bassWave = 'sawtooth';
+                } else if (theme === 'forest') {
+                    currentMelody = forestMelody; currentBass = forestBass;
+                    currentBPM = 90; melodyWave = 'sine'; bassWave = 'triangle';
+                } else if (theme === 'battle') {
+                    currentMelody = battleMelody; currentBass = battleBass;
+                    currentBPM = 180; melodyWave = 'square'; bassWave = 'sawtooth';
+                }
+                noteLength = (60 / currentBPM) / 2;
+            };
+
+            // 如果音樂引擎尚未啟動，直接切換設定即可
+            if (!audioCtx || !masterGain) {
+                applyThemeSettings();
+                return;
             }
-            noteLength = (60 / currentBPM) / 2;
+
+            let targetVol = (parseInt(volumeSlider.value) / 100) * 0.3;
+
+            // 淡出音樂 (1秒)
+            masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            masterGain.gain.setValueAtTime(masterGain.gain.value, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+
+            // 1秒後切換樂譜，並開始淡入
+            setTimeout(() => {
+                applyThemeSettings();
+                masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                masterGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                masterGain.gain.linearRampToValueAtTime(targetVol, audioCtx.currentTime + 1.0);
+            }, 1000);
         }
 
-        // 初始化載入當下場景對應的音樂
         setBGM(currentMenuTheme);
 
         const unlockAudio = () => {
@@ -853,7 +881,6 @@
             updateHUD();
         }
 
-        // 主角受傷計算與特效
         function takeDamage(amount, knockbackDir) {
             if (playerIsHurt || playerHP <= 0) return; 
 
@@ -874,7 +901,6 @@
 
             spawnDamageText((gameStage.offsetWidth / gameScale) / 2, logicCharY + 100, amount);
 
-            // 觸發擊退與受傷狀態
             playerIsHurt = true;
             playerHurtTimer = 300; 
             playerHurtDir = knockbackDir;
@@ -884,7 +910,6 @@
                 logicVelocityY = 12; 
             }
 
-            // GAME OVER 判定
             if (playerHP <= 0) {
                 setTimeout(() => {
                     isPaused = true;
@@ -929,6 +954,7 @@
             updatePhysics();  
             updateFloor();    
             updateEntities(); 
+            updateClouds();   // 更新雲朵位置與生成
             updateAnimation();
         }
 
@@ -955,6 +981,58 @@
             }
             
             floorTrack.style.transform = `translateX(${logicFloorX * gameScale}px)`;
+        }
+
+        // --- 雲朵控制邏輯 (視差效果) ---
+        function updateClouds() {
+            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+
+            cloudSpawnTimer -= 20;
+            if (cloudSpawnTimer <= 0) {
+                // 決定雲朵從哪邊生出來
+                let spawnX = movingDir === -1 ? -300 : screenLogicWidth + 300;
+                spawnCloud(spawnX);
+                cloudSpawnTimer = Math.random() * 3000 + 2000; // 2000 ~ 5000ms
+            }
+
+            for (let i = clouds.length - 1; i >= 0; i--) {
+                let c = clouds[i];
+                
+                // 視差移動：雲朵移動速度只有地板的 30%
+                if (movingDir !== 0) {
+                    c.logicX -= movingDir * BASE_MOVE_SPEED * 0.3; 
+                }
+                // 加入一點點自然風吹的微小漂移，即使不走動雲也會輕輕飄
+                c.logicX -= 0.5;
+
+                c.el.style.left = `${c.logicX * gameScale}px`;
+
+                // 超出邊界回收
+                if (c.logicX < -600 || c.logicX > screenLogicWidth + 600) {
+                    if (c.el.parentNode) gameStage.removeChild(c.el);
+                    clouds.splice(i, 1);
+                }
+            }
+        }
+
+        function spawnCloud(startX) {
+            let img = document.createElement('img');
+            img.src = cloudImages[Math.floor(Math.random() * cloudImages.length)];
+            img.className = 'cloud';
+            
+            let screenLogicWidth = gameStage.offsetWidth / gameScale;
+            let spawnX = startX !== undefined ? startX : screenLogicWidth + 300;
+            
+            // 雲朵高度生成在畫面偏上方的位置
+            let spawnY = Math.random() * 300 + 250; 
+            let scale = Math.random() * 0.6 + 0.4; // 0.4x ~ 1.0x
+
+            img.style.left = `${spawnX * gameScale}px`;
+            img.style.bottom = `${spawnY * gameScale}px`;
+            img.style.transform = `scale(${scale})`;
+
+            gameStage.appendChild(img);
+            clouds.push({ el: img, logicX: spawnX });
         }
 
         function updatePhysics() {
@@ -1027,7 +1105,6 @@
                 }
             }
 
-            // --- 護盾碰撞 ---
             for (let i = shields.length - 1; i >= 0; i--) {
                 let shield = shields[i];
                 if (movingDir !== 0) {
@@ -1058,7 +1135,6 @@
                 }
             }
 
-            // --- 怪物碰撞與攻擊 ---
             for (let i = monsters.length - 1; i >= 0; i--) {
                 let monster = monsters[i];
                 
@@ -1138,7 +1214,6 @@
                 }
             }
 
-            // --- 飛行物更新 ---
             for (let i = projectiles.length - 1; i >= 0; i--) {
                 let projectile = projectiles[i];
                 projectile.logicX += BASE_PROJECTILE_SPEED * projectile.dir;
@@ -1168,10 +1243,10 @@
                         
                         gainEXP(1); 
                         
+                        // 擊殺掉落機制改為「每固定 3 隻」
                         killCount++;
-                        if (killCount >= nextShieldKillThreshold) {
+                        if (killCount >= SHIELD_KILL_THRESHOLD) {
                             killCount = 0;
-                            nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7;
                             if (Math.random() <= 0.20) {
                                 spawnShield(monster.logicX); 
                             }
@@ -1287,7 +1362,7 @@
             pauseOverlay.style.display = 'none'; 
             isPaused = false; 
             
-            setBGM('battle'); // 進入遊戲切換戰鬥音樂
+            setBGM('battle'); 
             
             checkOrientation(); 
             if(isMobile) toggleFullScreen();
@@ -1321,7 +1396,11 @@
         volumeSlider.addEventListener('input', (e) => {
             let val = e.target.value;
             volText.innerText = val;
-            if (masterGain) masterGain.gain.value = (val / 100) * 0.3;
+            if (masterGain) {
+                // 滑動音量條時，手動重置淡入淡出數值
+                masterGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                masterGain.gain.setValueAtTime((val / 100) * 0.3, audioCtx.currentTime);
+            }
         });
 
         uiScaleSlider.addEventListener('input', (e) => {
@@ -1359,7 +1438,6 @@
             playerImg.style.filter = 'none';
 
             killCount = 0;
-            nextShieldKillThreshold = Math.floor(Math.random() * 4) + 7;
 
             updateHUD();
 
@@ -1371,6 +1449,14 @@
 
             projectiles.forEach(p => { if (p.el.parentNode) gameStage.removeChild(p.el); });
             projectiles = [];
+            
+            // 清除並在開始時生成一些初始的背景雲朵
+            clouds.forEach(c => { if (c.el.parentNode) gameStage.removeChild(c.el); });
+            clouds = [];
+            let screenWidth = gameStage.offsetWidth / gameScale;
+            for(let i=0; i<3; i++) {
+                spawnCloud(Math.random() * screenWidth);
+            }
             
             document.querySelectorAll('.vfx-light').forEach(light => {
                 if (light.parentNode) gameStage.removeChild(light);
@@ -1392,7 +1478,7 @@
             mainMenu.style.display = 'flex';
             menuBgVideo.style.display = 'block'; 
             
-            setBGM(currentMenuTheme); // 回到首頁切換回場景音樂
+            setBGM(currentMenuTheme); 
             
             restartGame(); 
             isPaused = true; 
@@ -1404,7 +1490,7 @@
             mainMenu.style.display = 'flex';
             menuBgVideo.style.display = 'block'; 
             
-            setBGM(currentMenuTheme); // 回到首頁切換回場景音樂
+            setBGM(currentMenuTheme); 
             
             restartGame(); 
             isPaused = true; 
@@ -1462,6 +1548,12 @@
                 fullscreenBtn.innerText = "全螢幕";
             }
         });
+
+        // 初始載入時手動重置一次雲朵避免畫面太空
+        let screenWidth = window.innerWidth / gameScale;
+        for(let i=0; i<3; i++) {
+            spawnCloud(Math.random() * screenWidth);
+        }
 
     </script>
 </body>
