@@ -215,7 +215,7 @@
         }
         
         .hud-highest-lv {
-            position: absolute; top: calc(160px * var(--scale)); left: calc(20px * var(--scale));
+            position: absolute; top: calc(140px * var(--scale)); left: calc(20px * var(--scale));
             background: rgba(255, 215, 0, 0.15); 
             border: calc(1px * var(--scale)) solid rgba(255, 215, 0, 0.4);
             padding: calc(5px * var(--scale)) calc(12px * var(--scale)); 
@@ -234,32 +234,32 @@
             z-index: 100;
         }
 
+        /* 縮小整體外框，保留圖示大尺寸 */
         .stat-box {
-            display: flex; align-items: center; gap: calc(10px * var(--scale));
+            display: flex; align-items: center; gap: calc(8px * var(--scale));
             background: rgba(0, 0, 0, 0.6); 
-            padding: calc(8px * var(--scale)) calc(15px * var(--scale));
+            padding: calc(4px * var(--scale)) calc(12px * var(--scale));
             border-radius: calc(25px * var(--scale)); 
             border: calc(2px * var(--scale)) solid rgba(255, 255, 255, 0.2);
             color: white; font-weight: bold; backdrop-filter: blur(5px);
         }
-        /* [修改] stat-label 原本設定固定 min-width，現在改寬一點以容納放大的圖片 */
         .stat-label { 
             font-size: calc(18px * var(--scale)); 
-            min-width: calc(50px * var(--scale)); /* 稍微放大 min-width */
+            min-width: calc(40px * var(--scale)); 
             text-shadow: 1px 1px 2px black; 
             display: flex; 
             align-items: center; 
             justify-content: center;
         }
-        /* [新增] 用來控制 stat-label 內部圖片大小的 CSS 規則 */
         .stat-label img {
-            /* [設定] 這裡控制圖片高度，從 24px 放大到 36px */
-            height: calc(36px * var(--scale)); 
+            /* 確保圖示保持大尺寸 */
+            height: calc(40px * var(--scale)); 
             image-rendering: pixelated;
         }
 
         .bar-bg {
-            width: calc(200px * var(--scale)); height: calc(18px * var(--scale));
+            /* 縮小血條/盾牌條長度與厚度 */
+            width: calc(120px * var(--scale)); height: calc(14px * var(--scale));
             background: rgba(255, 255, 255, 0.2); border-radius: calc(10px * var(--scale));
             overflow: hidden; box-shadow: inset 0 calc(2px * var(--scale)) calc(5px * var(--scale)) rgba(0,0,0,0.5);
         }
@@ -267,7 +267,13 @@
         .hp-fill { background: linear-gradient(90deg, #d32f2f, #f44336); width: 100%; }
         .shield-fill { background: linear-gradient(90deg, #9e9e9e, #e0e0e0); width: 0%; }
         .exp-fill { background: linear-gradient(90deg, #fbc02d, #ffeb3b); width: 0%; }
-        .stat-text { font-size: calc(14px * var(--scale)); min-width: calc(70px * var(--scale)); text-align: center; }
+        
+        .stat-text { 
+            /* 縮小字體尺寸與寬度 */
+            font-size: calc(12px * var(--scale)); 
+            min-width: calc(50px * var(--scale)); 
+            text-align: center; 
+        }
 
         #gameLogo {
             position: absolute; top: calc(-20px * var(--scale)); right: calc(-30px * var(--scale)); 
@@ -526,8 +532,6 @@
     </div>
 
     <script>
-        // (這裡的 JavaScript 代碼保持不變，因此為了簡潔而省略，請保留原檔案中的內容)
-        // === JavaScript 控制邏輯 (保持不變) ===
         // === 主選單影片與背景控制邏輯 ===
         const bgVideos = [
             { src: 'Game_start_movie_sunny.mp4', theme: 'sunny' },
@@ -1193,7 +1197,6 @@
                                 
                                 let pCenter = playerRect ? playerRect.x + playerRect.width / 2 : 0;
                                 let mCenter = monster.el.getBoundingClientRect().x + monster.el.getBoundingClientRect().width / 2;
-                                // 攻擊力改為 6 點
                                 takeDamage(6, pCenter < mCenter ? -1 : 1); 
                             }
                         }
@@ -1394,7 +1397,7 @@
             else movingDir = 0;
         }
 
-        // === 系統功能 (暫探與選單切換) ===
+        // === 系統功能 (暫停與選單切換) ===
 
         if (startBtn) {
             startBtn.addEventListener('click', () => {
